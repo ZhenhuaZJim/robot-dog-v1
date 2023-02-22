@@ -46,79 +46,69 @@ int PWM = 0;
 float default_pos_r[3] = {0, -75, -100};
 float default_pos_l[3] = {0, 75, -100};
 
+int mode = 0;
+
 // Back left leg
 void set_joint_1(int theta) {
   uint16_t off = map(theta, 90, -90, Servo2Min, Servo2Max);
-  Serial.println(String(off));
   pwm.writeMicroseconds(2, off);
 }
 
 void set_joint_2(int theta) {
   uint16_t off = map(theta, -90, 90, Servo1Min, Servo1Max);
-  Serial.println(String(off));
   pwm.writeMicroseconds(1, off);
 }
 
 void set_joint_3(int theta) {
   uint16_t off = map(theta, -90, 90, Servo0Min, Servo0Max);
-  Serial.println(String(off));
   pwm.writeMicroseconds(0, off);
 }
 
 // Back right leg
 void set_joint_4(int theta) {
   uint16_t off = map(theta, -90, 90, Servo5Min, Servo5Max);
-  Serial.println(String(off));
   pwm.writeMicroseconds(5, off);
 }
 
 void set_joint_5(int theta) {
   uint16_t off = map(theta, 90, -90, Servo4Min, Servo4Max);
-  Serial.println(String(off));
   pwm.writeMicroseconds(4, off);
 }
 
 void set_joint_6(int theta) {
   uint16_t off = map(theta, 90, -90, Servo3Min, Servo3Max);
-  Serial.println(String(off));
   pwm.writeMicroseconds(3, off);
 }
 
 // Front left leg
 void set_joint_7(int theta) {
   uint16_t off = map(theta, 90, -90, Servo8Min, Servo8Max);
-  Serial.println(String(off));
   pwm.writeMicroseconds(8, off);
 }
 
 void set_joint_8(int theta) {
   uint16_t off = map(theta, -90, 90, Servo7Min, Servo7Max);
-  Serial.println(String(off));
   pwm.writeMicroseconds(7, off);
 }
 
 void set_joint_9(int theta) {
   uint16_t off = map(theta, -90, 90, Servo6Min, Servo6Max);
-  Serial.println(String(off));
   pwm.writeMicroseconds(6, off);
 }
 
 // Front right leg
 void set_joint_10(int theta) {
   uint16_t off = map(theta, -90, 90, Servo11Min, Servo11Max);
-  Serial.println(String(off));
   pwm.writeMicroseconds(11, off);
 }
 
 void set_joint_11(int theta) {
   uint16_t off = map(theta, 90, -90, Servo10Min, Servo10Max);
-  Serial.println(String(off));
   pwm.writeMicroseconds(10, off);
 }
 
 void set_joint_12(int theta) {
   uint16_t off = map(theta, 90, -90, Servo9Min, Servo9Max);
-  Serial.println(String(off));
   pwm.writeMicroseconds(9, off);
 }
 
@@ -164,7 +154,6 @@ void calculate_ik_l(float *coordinate, int *jointAngle) {
   float length_ = sqrt(sq(x) + sq(z));
   if (x >= 0) {
     theta2 = acos(abs(z) / length_) - acos(-(sq(LENGTH_3) - sq(length_) - sq(LENGTH_2)) / (2 * length_ * LENGTH_2));
-    Serial.println(String(acos(z / length_)));
     theta3 = 1.5708 - acos(-(sq(length_) - sq(LENGTH_3) - sq(LENGTH_2)) / (2 * LENGTH_3 * LENGTH_2));
   }
   else {
@@ -194,7 +183,6 @@ void calculate_ik_r(float *coordinate, int *jointAngle) {
   float length_ = sqrt(sq(x) + sq(z));
   if (x >= 0) {
     theta2 = acos(abs(z) / length_) - acos(-(sq(LENGTH_3) - sq(length_) - sq(LENGTH_2)) / (2 * length_ * LENGTH_2));
-    Serial.println(String(acos(z / length_)));
     theta3 = 1.5708 - acos(-(sq(length_) - sq(LENGTH_3) - sq(LENGTH_2)) / (2 * LENGTH_3 * LENGTH_2));
   }
   else {
@@ -218,16 +206,16 @@ void walk_cycle(int *theta_l, int *theta_r) {
     pos_l[0] = x;
     pos_r[2] = z_offset;
     pos_l[2] = z_offset;
-    Serial.println("Position_r - x " + String(pos_r[0]) + "--- y " + String(pos_r[1]) + "--- z " + String(pos_r[2]));
-    Serial.println("Position_l - x " + String(pos_l[0]) + "--- y " + String(pos_l[1]) + "--- z " + String(pos_l[2]));
+//    Serial.println("Position_r - x " + String(pos_r[0]) + "--- y " + String(pos_r[1]) + "--- z " + String(pos_r[2]));
+//    Serial.println("Position_l - x " + String(pos_l[0]) + "--- y " + String(pos_l[1]) + "--- z " + String(pos_l[2]));
     calculate_ik_r(pos_r, theta_r);
     calculate_ik_l(pos_l, theta_l);
     set_joint_array_bl(theta_l);
     set_joint_array_br(theta_r);
     set_joint_array_fl(theta_l);
     set_joint_array_fr(theta_r);
-    Serial.println("joint_angle_r - 1 " + String(theta_r[0]) + "--- 2 " + String(theta_r[1]) + "--- 3 " + String(theta_r[2]));
-    Serial.println("joint_angle_l - 1 " + String(theta_l[0]) + "--- 2 " + String(theta_l[1]) + "--- 3 " + String(theta_l[2]));
+//    Serial.println("joint_angle_r - 1 " + String(theta_r[0]) + "--- 2 " + String(theta_r[1]) + "--- 3 " + String(theta_r[2]));
+//    Serial.println("joint_angle_l - 1 " + String(theta_l[0]) + "--- 2 " + String(theta_l[1]) + "--- 3 " + String(theta_l[2]));
     delay(delay_ms);
   }
   for (float x = -walkRadius; x < walkRadius; x += walkInterval) {
@@ -236,16 +224,16 @@ void walk_cycle(int *theta_l, int *theta_r) {
     float actual_z = sqrt(sq(walkRadius) - sq(x)) + z_offset;
     pos_r[2] = actual_z;
     pos_l[2] = actual_z;
-    Serial.println("Position_r - x " + String(pos_r[0]) + "--- y " + String(pos_r[1]) + "--- z " + String(pos_r[2]));
-    Serial.println("Position_l - x " + String(pos_l[0]) + "--- y " + String(pos_l[1]) + "--- z " + String(pos_l[2]));
+//    Serial.println("Position_r - x " + String(pos_r[0]) + "--- y " + String(pos_r[1]) + "--- z " + String(pos_r[2]));
+//    Serial.println("Position_l - x " + String(pos_l[0]) + "--- y " + String(pos_l[1]) + "--- z " + String(pos_l[2]));
     calculate_ik_r(pos_r, theta_r);
     calculate_ik_l(pos_l, theta_l);
     set_joint_array_bl(theta_l);
     set_joint_array_br(theta_r);
     set_joint_array_fl(theta_l);
     set_joint_array_fr(theta_r);
-    Serial.println("joint_angle_r - 1 " + String(theta_r[0]) + "--- 2 " + String(theta_r[1]) + "--- 3 " + String(theta_r[2]));
-    Serial.println("joint_angle_l - 1 " + String(theta_l[0]) + "--- 2 " + String(theta_l[1]) + "--- 3 " + String(theta_l[2]));
+//    Serial.println("joint_angle_r - 1 " + String(theta_r[0]) + "--- 2 " + String(theta_r[1]) + "--- 3 " + String(theta_r[2]));
+//    Serial.println("joint_angle_l - 1 " + String(theta_l[0]) + "--- 2 " + String(theta_l[1]) + "--- 3 " + String(theta_l[2]));
     delay(delay_ms);
   }
 }
@@ -254,45 +242,73 @@ void stand_cycle(int *theta_l, int *theta_r) {
   float *pos_r = default_pos_r;
   float *pos_l = default_pos_l;
   float standOffSet = 40;
-  float standInterval = 20;
+  float standInterval = 5;
   float z_offset = -90;
   int delay_ms = 50;
   for (float z = standOffSet; z > -standOffSet; z -= standInterval) {
     float actual_z = z + z_offset;
     pos_r[2] = actual_z;
     pos_l[2] = actual_z;
-    Serial.println("Position_r - x " + String(pos_r[0]) + "--- y " + String(pos_r[1]) + "--- z " + String(pos_r[2]));
-    Serial.println("Position_l - x " + String(pos_l[0]) + "--- y " + String(pos_l[1]) + "--- z " + String(pos_l[2]));
+//    Serial.println("Position_r - x " + String(pos_r[0]) + "--- y " + String(pos_r[1]) + "--- z " + String(pos_r[2]));
+//    Serial.println("Position_l - x " + String(pos_l[0]) + "--- y " + String(pos_l[1]) + "--- z " + String(pos_l[2]));
     calculate_ik_r(pos_r, theta_r);
     calculate_ik_l(pos_l, theta_l);
     set_joint_array_bl(theta_l);
     set_joint_array_br(theta_r);
     set_joint_array_fl(theta_l);
     set_joint_array_fr(theta_r);
-    Serial.println("joint_angle_r - 1 " + String(theta_r[0]) + "--- 2 " + String(theta_r[1]) + "--- 3 " + String(theta_r[2]));
-    Serial.println("joint_angle_l - 1 " + String(theta_l[0]) + "--- 2 " + String(theta_l[1]) + "--- 3 " + String(theta_l[2]));
+//    Serial.println("joint_angle_r - 1 " + String(theta_r[0]) + "--- 2 " + String(theta_r[1]) + "--- 3 " + String(theta_r[2]));
+//    Serial.println("joint_angle_l - 1 " + String(theta_l[0]) + "--- 2 " + String(theta_l[1]) + "--- 3 " + String(theta_l[2]));
     delay(delay_ms);
   }
   for (float z = -standOffSet; z < standOffSet; z += standInterval) {
     float actual_z = z + z_offset;
     pos_r[2] = actual_z;
     pos_l[2] = actual_z;
-    Serial.println("Position_r - x " + String(pos_r[0]) + "--- y " + String(pos_r[1]) + "--- z " + String(pos_r[2]));
-    Serial.println("Position_l - x " + String(pos_l[0]) + "--- y " + String(pos_l[1]) + "--- z " + String(pos_l[2]));
+//    Serial.println("Position_r - x " + String(pos_r[0]) + "--- y " + String(pos_r[1]) + "--- z " + String(pos_r[2]));
+//    Serial.println("Position_l - x " + String(pos_l[0]) + "--- y " + String(pos_l[1]) + "--- z " + String(pos_l[2]));
     calculate_ik_r(pos_r, theta_r);
     calculate_ik_l(pos_l, theta_l);
     set_joint_array_bl(theta_l);
     set_joint_array_br(theta_r);
     set_joint_array_fl(theta_l);
     set_joint_array_fr(theta_r);
-    Serial.println("joint_angle_r - 1 " + String(theta_r[0]) + "--- 2 " + String(theta_r[1]) + "--- 3 " + String(theta_r[2]));
-    Serial.println("joint_angle_l - 1 " + String(theta_l[0]) + "--- 2 " + String(theta_l[1]) + "--- 3 " + String(theta_l[2]));
+//    Serial.println("joint_angle_r - 1 " + String(theta_r[0]) + "--- 2 " + String(theta_r[1]) + "--- 3 " + String(theta_r[2]));
+//    Serial.println("joint_angle_l - 1 " + String(theta_l[0]) + "--- 2 " + String(theta_l[1]) + "--- 3 " + String(theta_l[2]));
     delay(delay_ms);
+  }
+}
+
+int serialSetStand(int *theta_l, int *theta_r) {
+  float pos_l[3] = {0, 75, -100};
+  float pos_r[3] = {0, -75, -100};
+  int delay_ms = 50;
+  int serialIntOutput = 0;
+  while (true){
+    if(Serial.available()){
+      Serial.println("Pasrsing output");
+      serialIntOutput = Serial.parseInt();
+      Serial.println("Pasrsing output" + String(serialIntOutput));
+    }
+    if (serialIntOutput < 0){
+      pos_r[2] = serialIntOutput;
+      pos_l[2] = serialIntOutput;
+      calculate_ik_r(pos_r, theta_r);
+      calculate_ik_l(pos_l, theta_l);
+      set_joint_array_bl(theta_l);
+      set_joint_array_br(theta_r);
+      set_joint_array_fl(theta_l);
+      set_joint_array_fr(theta_r);
+    }
+    else if (serialIntOutput == 100){
+      return 0;
+    }
   }
 }
 
 void setup() {
   Serial.begin(115200);
+  Serial.setTimeout(50);
   // put your setup code here, to run once:
   pwm.begin();
   pwm.setOscillatorFrequency(DEFAULT_FREQUENCY);
@@ -315,6 +331,27 @@ void setup() {
 void loop() {
   int theta_r[3] = {0, 0, 0};
   int theta_l[3] = {0, 0, 0};
+  int serialIntOutput = 0;
+
+  Serial.println("Before Serial.available");
+  Serial.println("mode: " + String(mode));
+  if(Serial.available()){
+    Serial.println("Pasrsing output");
+    serialIntOutput = Serial.parseInt();
+    //int zeroBuffer = Serial.parseInt();
+    Serial.println("Pasrsing output" + String(serialIntOutput));
+  }
+  Serial.println("After Serial.available");
+  if (serialIntOutput != 0){
+    mode = serialIntOutput;
+  }
+  switch (mode){
+    case 1: walk_cycle(theta_l, theta_r); break;
+    case 2: stand_cycle(theta_l, theta_r); break;
+    case 3: 
+      mode = serialSetStand(theta_l, theta_r);
+      break;
+  }
   // walk_cycle(theta_l, theta_r);
   // stand_cycle(theta_l, theta_r);
 }

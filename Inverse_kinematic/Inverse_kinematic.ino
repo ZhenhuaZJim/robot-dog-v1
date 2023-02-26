@@ -195,8 +195,10 @@ void calculate_ik_r(float *coordinate, int *jointAngle) {
 }
 
 void walk_cycle(int *theta_l, int *theta_r) {
-  float *pos_r = default_pos_r;
-  float *pos_l = default_pos_l;
+  float pos_r[3];
+  float pos_l[3];
+  memcpy(pos_r, default_pos_r, sizeof(pos_r));
+  memcpy(pos_l, default_pos_l, sizeof(pos_l));
   float walkRadius = 50;
   float walkInterval = 10;
   float z_offset = -120;
@@ -231,8 +233,10 @@ void walk_cycle(int *theta_l, int *theta_r) {
 }
 
 void stand_cycle(int *theta_l, int *theta_r) {
-  float *pos_r = default_pos_r;
-  float *pos_l = default_pos_l;
+  float pos_r[3];
+  float pos_l[3];
+  memcpy(pos_r, default_pos_r, sizeof(pos_r));
+  memcpy(pos_l, default_pos_l, sizeof(pos_l));
   float standOffSet = 40;
   float standInterval = 5;
   float z_offset = -90;
@@ -271,7 +275,7 @@ void stand_cycle(int *theta_l, int *theta_r) {
   }
 }
 
-int serialSetStand(int *theta_l, int *theta_r) {
+int serialSetZ(int *theta_l, int *theta_r) {
   float pos_l[3] = {0, 75, -100};
   float pos_r[3] = {0, -75, -100};
   int delay_ms = 50;
@@ -285,6 +289,7 @@ int serialSetStand(int *theta_l, int *theta_r) {
     if (serialIntOutput < 0){
       pos_r[2] = serialIntOutput;
       pos_l[2] = serialIntOutput;
+
       calculate_ik_r(pos_r, theta_r);
       calculate_ik_l(pos_l, theta_l);
       set_joint_array_bl(theta_l);
@@ -292,7 +297,80 @@ int serialSetStand(int *theta_l, int *theta_r) {
       set_joint_array_fl(theta_l);
       set_joint_array_fr(theta_r);
     }
-    else if (serialIntOutput == 100){
+    if (serialIntOutput == -1){
+      return 0;
+    }
+  }
+}
+
+void serialSetBodyRotX(int *theta_l, int *theta_r){
+
+  int delay_ms = 50;
+  int serialIntOutput = 0;
+  while (true){
+    if(Serial.available()){
+      Serial.println("Pasrsing output");
+      serialIntOutput = Serial.parseInt();
+      Serial.println("Pasrsing output" + String(serialIntOutput));
+    }
+    if (serialIntOutput != 0){
+      float pos_l[3] = {0, 75, -100};
+      float pos_r[3] = {0, -75, -100};
+      float rad = float(serialIntOutput) * (3.14 / 180);
+      float dz = 232 / 2 * float(sin(rad)); // 232 is the body length in y direction
+      pos_r[2] = pos_r[2] + dz;
+      pos_l[2] = pos_l[2] - dz;
+      calculate_ik_r(pos_r, theta_r);
+      calculate_ik_l(pos_l, theta_l);
+      set_joint_array_bl(theta_l);
+      set_joint_array_br(theta_r);
+      set_joint_array_fl(theta_l);
+      set_joint_array_fr(theta_r);
+    }
+    if (serialIntOutput == -1){
+      return 0;
+    }
+  }
+}
+
+void serialSetBodyRotY(int *theta_l, int *theta_r){
+  float pos_bl[3];
+  float pos_br[3];
+  float pos_fl[3];
+  float pos_fr[3];
+  int theta_bl[3];
+  int theta_br[3];
+  int theta_fl[3];
+  int theta_fr[3];
+  int delay_ms = 50;
+  int serialIntOutput = 0;
+  while (true){
+    if(Serial.available()){
+      Serial.println("Pasrsing output");
+      serialIntOutput = Serial.parseInt();
+      Serial.println("Pasrsing output" + String(serialIntOutput));
+    }
+    if (serialIntOutput != 0){
+      memcpy(pos_bl, default_pos_l, sizeof(pos_bl));
+      memcpy(pos_br, default_pos_r, sizeof(pos_br));
+      memcpy(pos_fl, default_pos_l, sizeof(pos_fl));
+      memcpy(pos_fr, default_pos_r, sizeof(pos_fr));
+      float rad = float(serialIntOutput) * (3.14 / 180);
+      float dz = 256 / 2 * float(sin(rad)); // 232 is the body length in y direction
+      pos_bl[2] = pos_bl[2] + dz;
+      pos_br[2] = pos_br[2] + dz;
+      pos_fl[2] = pos_fl[2] - dz;
+      pos_fr[2] = pos_fr[2] - dz;
+      calculate_ik_l(pos_bl, theta_bl);
+      calculate_ik_r(pos_br, theta_br);
+      calculate_ik_l(pos_fl, theta_fl);
+      calculate_ik_r(pos_fr, theta_fr);
+      set_joint_array_bl(theta_bl);
+      set_joint_array_br(theta_br);
+      set_joint_array_fl(theta_fl);
+      set_joint_array_fr(theta_fr);
+    }
+    if (serialIntOutput == -1){
       return 0;
     }
   }
@@ -337,10 +415,35 @@ void loop() {
     mode = serialIntOutput;
   }
   switch (mode){
+    case -1:
+      float pos_r[3];
+      float pos_l[3];
+      memcpy(pos_r, default_pos_r, sizeof(pos_r));
+      memcpy(pos_l, default_pos_l, sizeof(pos_l));
+      Serial.println(String(sizeof(default_pos_l)) + " " + String(sizeof(pos_l)));
+      Serial.println("Position_r - x " + String(pos_r[0]) + "--- y " + String(pos_r[1]) + "--- z " + String(pos_r[2]));
+      Serial.println("Position_l - x " + String(pos_l[0]) + "--- y " + String(pos_l[1]) + "--- z " + String(pos_l[2]));
+
+      calculate_ik_l(pos_l, theta_l);
+      calculate_ik_r(pos_r, theta_r);
+      set_joint_array_bl(theta_l);
+      set_joint_array_br(theta_r);
+      set_joint_array_fl(theta_l);
+      set_joint_array_fr(theta_r);
+      delay(100);
+      break;
     case 1: walk_cycle(theta_l, theta_r); break;
     case 2: stand_cycle(theta_l, theta_r); break;
     case 3: 
-      mode = serialSetStand(theta_l, theta_r);
+      mode = serialSetZ(theta_l, theta_r);
+      break;
+    case 4: 
+      serialSetBodyRotX(theta_l, theta_r);
+      mode = 0;
+      break;
+    case 5: 
+      serialSetBodyRotY(theta_l, theta_r);
+      mode = 0;
       break;
   }
 }

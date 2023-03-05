@@ -158,7 +158,10 @@ void calculate_ik_l(float *coordinate, int *jointAngle) {
 
   float theta2 = 0;
   float theta3 = 0;
+  Serial.println("Original Z: " + String(z) + " and theta_1: " + String(theta1));
+  z = z - LENGTH_1 * sin(theta1);
   float length_ = sqrt(sq(x) + sq(z));
+  Serial.println("calculate new Z: " + String(z) + " and length " + String(length_));
   if (x >= 0) {
     theta2 = acos(abs(z) / length_) - acos(-(sq(LENGTH_3) - sq(length_) - sq(LENGTH_2)) / (2 * length_ * LENGTH_2));
     theta3 = 1.5708 - acos(-(sq(length_) - sq(LENGTH_3) - sq(LENGTH_2)) / (2 * LENGTH_3 * LENGTH_2));
@@ -167,7 +170,7 @@ void calculate_ik_l(float *coordinate, int *jointAngle) {
     theta2 = -( acos(abs(z) / (sqrt(sq(x) + sq(z)))) + acos(-(sq(LENGTH_3) - sq(LENGTH_2) - sq(length_)) / (2 * LENGTH_2 * length_)) );
     theta3 = 1.5708 - acos(-(sq(length_) - sq(LENGTH_2) - sq(LENGTH_3)) / (2 * LENGTH_2 * LENGTH_3));
   }
-  Serial.println("calculate_ik_l - 1 " + String(theta1) + "--- 2 " + String(theta2) + "--- 3 " + String(theta3));
+  Serial.println("calculate_ik_l - 1: " + String(theta1) + "--- 2: " + String(theta2) + "--- 3: " + String(theta3));
 
   jointAngle[0] = int(theta1 * (180 / 3.14));
   jointAngle[1] = int(theta2 * (180 / 3.14));
@@ -189,6 +192,7 @@ void calculate_ik_r(float *coordinate, int *jointAngle) {
 
   float theta2 = 0;
   float theta3 = 0;
+  z = z - LENGTH_1 * sin(theta1);
   float length_ = sqrt(sq(x) + sq(z));
   if (x >= 0) {
     theta2 = acos(abs(z) / length_) - acos(-(sq(LENGTH_3) - sq(length_) - sq(LENGTH_2)) / (2 * length_ * LENGTH_2));
@@ -198,7 +202,7 @@ void calculate_ik_r(float *coordinate, int *jointAngle) {
     theta2 = -( acos(abs(z) / (sqrt(sq(x) + sq(z)))) + acos(-(sq(LENGTH_3) - sq(LENGTH_2) - sq(length_)) / (2 * LENGTH_2 * length_)) );
     theta3 = 1.5708 - acos(-(sq(length_) - sq(LENGTH_2) - sq(LENGTH_3)) / (2 * LENGTH_2 * LENGTH_3));
   }
-  Serial.println("calculate_ik_r - 1 " + String(theta1) + "--- 2 " + String(theta2) + "--- 3 " + String(theta3));
+  Serial.println("calculate_ik_r - 1: " + String(theta1) + " --- 2: " + String(theta2) + " --- 3: " + String(theta3));
   jointAngle[0] = int(theta1 * (180 / 3.14));
   jointAngle[1] = int(theta2 * (180 / 3.14));
   jointAngle[2] = int(theta3 * (180 / 3.14));

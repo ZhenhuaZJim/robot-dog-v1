@@ -192,8 +192,11 @@ void calculate_ik_r(float *coordinate, int *jointAngle) {
 
   float theta2 = 0;
   float theta3 = 0;
-  z = z - LENGTH_1 * sin(theta1);
+  Serial.println("calculate_ik_r Original Z: " + String(z) + " and theta_1: " + String(theta1));
+  z = z + LENGTH_1 * sin(theta1);
   float length_ = sqrt(sq(x) + sq(z));
+  Serial.println("calculate_ik_r calculate new Z: " + String(z) + " and length " + String(length_));
+
   if (x >= 0) {
     theta2 = -( (acos(abs(z) / length_) - acos(-(sq(LENGTH_3) - sq(length_) - sq(LENGTH_2)) / (2 * length_ * LENGTH_2))));
     theta3 = acos(-(sq(length_) - sq(LENGTH_3) - sq(LENGTH_2)) / (2 * LENGTH_3 * LENGTH_2)) - 1.5708;

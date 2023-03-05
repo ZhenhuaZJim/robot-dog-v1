@@ -50,17 +50,17 @@ int mode = 0;
 
 // Back left leg
 void set_joint_1(int theta) {
-  uint16_t off = map(theta, 90, -90, Servo2Min, Servo2Max);
+  uint16_t off = map(theta, -90, 90, Servo2Min, Servo2Max);
   pwm.writeMicroseconds(2, off);
 }
 
 void set_joint_2(int theta) {
-  uint16_t off = map(theta, -90, 90, Servo1Min, Servo1Max);
+  uint16_t off = map(theta, 90, -90, Servo1Min, Servo1Max);
   pwm.writeMicroseconds(1, off);
 }
 
 void set_joint_3(int theta) {
-  uint16_t off = map(theta, -90, 90, Servo0Min, Servo0Max);
+  uint16_t off = map(theta, 90, -90, Servo0Min, Servo0Max);
   pwm.writeMicroseconds(0, off);
 }
 
@@ -71,12 +71,12 @@ void set_joint_4(int theta) {
 }
 
 void set_joint_5(int theta) {
-  uint16_t off = map(theta, 90, -90, Servo4Min, Servo4Max);
+  uint16_t off = map(theta, -90, 90, Servo4Min, Servo4Max);
   pwm.writeMicroseconds(4, off);
 }
 
 void set_joint_6(int theta) {
-  uint16_t off = map(theta, 90, -90, Servo3Min, Servo3Max);
+  uint16_t off = map(theta, -90, 90, Servo3Min, Servo3Max);
   pwm.writeMicroseconds(3, off);
 }
 
@@ -87,28 +87,28 @@ void set_joint_7(int theta) {
 }
 
 void set_joint_8(int theta) {
-  uint16_t off = map(theta, -90, 90, Servo7Min, Servo7Max);
+  uint16_t off = map(theta, 90, -90, Servo7Min, Servo7Max);
   pwm.writeMicroseconds(7, off);
 }
 
 void set_joint_9(int theta) {
-  uint16_t off = map(theta, -90, 90, Servo6Min, Servo6Max);
+  uint16_t off = map(theta, 90, -90, Servo6Min, Servo6Max);
   pwm.writeMicroseconds(6, off);
 }
 
 // Front right leg
 void set_joint_10(int theta) {
-  uint16_t off = map(theta, -90, 90, Servo11Min, Servo11Max);
+  uint16_t off = map(theta, 90, -90, Servo11Min, Servo11Max);
   pwm.writeMicroseconds(11, off);
 }
 
 void set_joint_11(int theta) {
-  uint16_t off = map(theta, 90, -90, Servo10Min, Servo10Max);
+  uint16_t off = map(theta, -90, 90, Servo10Min, Servo10Max);
   pwm.writeMicroseconds(10, off);
 }
 
 void set_joint_12(int theta) {
-  uint16_t off = map(theta, 90, -90, Servo9Min, Servo9Max);
+  uint16_t off = map(theta, -90, 90, Servo9Min, Servo9Max);
   pwm.writeMicroseconds(9, off);
 }
 
@@ -150,10 +150,10 @@ void calculate_ik_l(float *coordinate, int *jointAngle) {
 
   float theta1 = 0;
   if (y >= 0) {
-    theta1 = -acos(LENGTH_1 / (sqrt(sq(y) + sq(z)))) + acos(abs(y) / (sqrt(sq(y) + sq(z))));
+    theta1 = acos(LENGTH_1 / (sqrt(sq(y) + sq(z)))) - acos(abs(y) / (sqrt(sq(y) + sq(z))));
   }
   else {
-    theta1 = 1.5708 - acos(LENGTH_1 / (sqrt(sq(y) + sq(z)))) + acos(abs(z) / (sqrt(sq(y) + sq(z))));
+    theta1 = acos(LENGTH_1 / (sqrt(sq(y) + sq(z)))) - acos(abs(z) / (sqrt(sq(y) + sq(z)))) - 1.5708;
   }
 
   float theta2 = 0;
@@ -163,12 +163,12 @@ void calculate_ik_l(float *coordinate, int *jointAngle) {
   float length_ = sqrt(sq(x) + sq(z));
   Serial.println("calculate new Z: " + String(z) + " and length " + String(length_));
   if (x >= 0) {
-    theta2 = acos(abs(z) / length_) - acos(-(sq(LENGTH_3) - sq(length_) - sq(LENGTH_2)) / (2 * length_ * LENGTH_2));
-    theta3 = 1.5708 - acos(-(sq(length_) - sq(LENGTH_3) - sq(LENGTH_2)) / (2 * LENGTH_3 * LENGTH_2));
+    theta2 = -( (acos(abs(z) / length_) - acos(-(sq(LENGTH_3) - sq(length_) - sq(LENGTH_2)) / (2 * length_ * LENGTH_2))));
+    theta3 = acos(-(sq(length_) - sq(LENGTH_3) - sq(LENGTH_2)) / (2 * LENGTH_3 * LENGTH_2)) - 1.5708;
   }
   else {
-    theta2 = -( acos(abs(z) / (sqrt(sq(x) + sq(z)))) + acos(-(sq(LENGTH_3) - sq(LENGTH_2) - sq(length_)) / (2 * LENGTH_2 * length_)) );
-    theta3 = 1.5708 - acos(-(sq(length_) - sq(LENGTH_2) - sq(LENGTH_3)) / (2 * LENGTH_2 * LENGTH_3));
+    theta2 = acos(abs(z) / (sqrt(sq(x) + sq(z)))) + acos(-(sq(LENGTH_3) - sq(LENGTH_2) - sq(length_)) / (2 * LENGTH_2 * length_));
+    theta3 = acos(-(sq(length_) - sq(LENGTH_2) - sq(LENGTH_3)) / (2 * LENGTH_2 * LENGTH_3)) - 1.5708;
   }
   Serial.println("calculate_ik_l - 1: " + String(theta1) + "--- 2: " + String(theta2) + "--- 3: " + String(theta3));
 
@@ -184,10 +184,10 @@ void calculate_ik_r(float *coordinate, int *jointAngle) {
 
   float theta1 = 0;
   if (y >= 0) {
-    theta1 = acos(LENGTH_1 / (sqrt(sq(y) + sq(z)))) - acos(abs(z) / (sqrt(sq(y) + sq(z)))) - 1.5708;
+    theta1 = 1.5708 - acos(LENGTH_1 / (sqrt(sq(y) + sq(z)))) - acos(abs(z) / (sqrt(sq(y) + sq(z))));
   }
   else {
-    theta1 = acos(LENGTH_1 / (sqrt(sq(y) + sq(z)))) - acos(abs(y) / (sqrt(sq(y) + sq(z))));
+    theta1 = -( acos(LENGTH_1 / (sqrt(sq(y) + sq(z)))) - acos(abs(y) / (sqrt(sq(y) + sq(z)))) );
   }
 
   float theta2 = 0;
@@ -195,12 +195,12 @@ void calculate_ik_r(float *coordinate, int *jointAngle) {
   z = z - LENGTH_1 * sin(theta1);
   float length_ = sqrt(sq(x) + sq(z));
   if (x >= 0) {
-    theta2 = acos(abs(z) / length_) - acos(-(sq(LENGTH_3) - sq(length_) - sq(LENGTH_2)) / (2 * length_ * LENGTH_2));
-    theta3 = 1.5708 - acos(-(sq(length_) - sq(LENGTH_3) - sq(LENGTH_2)) / (2 * LENGTH_3 * LENGTH_2));
+    theta2 = -( (acos(abs(z) / length_) - acos(-(sq(LENGTH_3) - sq(length_) - sq(LENGTH_2)) / (2 * length_ * LENGTH_2))));
+    theta3 = acos(-(sq(length_) - sq(LENGTH_3) - sq(LENGTH_2)) / (2 * LENGTH_3 * LENGTH_2)) - 1.5708;
   }
   else {
-    theta2 = -( acos(abs(z) / (sqrt(sq(x) + sq(z)))) + acos(-(sq(LENGTH_3) - sq(LENGTH_2) - sq(length_)) / (2 * LENGTH_2 * length_)) );
-    theta3 = 1.5708 - acos(-(sq(length_) - sq(LENGTH_2) - sq(LENGTH_3)) / (2 * LENGTH_2 * LENGTH_3));
+    theta2 = acos(abs(z) / (sqrt(sq(x) + sq(z)))) + acos(-(sq(LENGTH_3) - sq(LENGTH_2) - sq(length_)) / (2 * LENGTH_2 * length_));
+    theta3 = acos(-(sq(length_) - sq(LENGTH_2) - sq(LENGTH_3)) / (2 * LENGTH_2 * LENGTH_3)) - 1.5708;
   }
   Serial.println("calculate_ik_r - 1: " + String(theta1) + " --- 2: " + String(theta2) + " --- 3: " + String(theta3));
   jointAngle[0] = int(theta1 * (180 / 3.14));

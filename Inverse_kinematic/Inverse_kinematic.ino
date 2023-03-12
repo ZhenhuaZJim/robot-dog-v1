@@ -217,9 +217,9 @@ void walk_cycle(int *theta_l, int *theta_r) {
   memcpy(pos_r, default_pos_r, sizeof(pos_r));
   memcpy(pos_l, default_pos_l, sizeof(pos_l));
   float walkRadius = 50;
-  float walkInterval = 10;
+  float walkInterval = 20;
   float z_offset = -120;
-  int delay_ms = 40;
+  int delay_ms = 60;
   for (float x = walkRadius; x > -walkRadius; x -= walkInterval) {
     pos_r[0] = x;
     pos_l[0] = x;
@@ -239,6 +239,59 @@ void walk_cycle(int *theta_l, int *theta_r) {
     calculate_ik_r(pos_r, theta_r);
     calculate_ik_l(pos_l, theta_l);
     set_join_array_leg(theta_l, theta_r, theta_l, theta_r);
+    delay(delay_ms);
+  }
+}
+
+void walk_cycle_alternate() {
+  float pos_bl[3];
+  float pos_br[3];
+  float pos_fl[3];
+  float pos_fr[3];
+  int theta_bl[3];
+  int theta_br[3];
+  int theta_fl[3];
+  int theta_fr[3];
+  memcpy(pos_bl, default_pos_l, sizeof(pos_bl));
+  memcpy(pos_br, default_pos_r, sizeof(pos_br));
+  memcpy(pos_fl, default_pos_l, sizeof(pos_fl));
+  memcpy(pos_fr, default_pos_r, sizeof(pos_fr));
+  float walkRadius = 50;
+  float walkInterval = 15;
+  float z_offset = -120;
+  int delay_ms = 20;
+  for (float x = walkRadius; x > -walkRadius; x -= walkInterval) {
+    pos_bl[0] = x;
+    pos_br[0] = -x;
+    pos_fl[0] = -x;
+    pos_fr[0] = x;
+    float actual_z = sqrt(sq(walkRadius) - sq(x)) + z_offset;
+    pos_bl[2] = z_offset;
+    pos_br[2] = actual_z;
+    pos_fl[2] = actual_z;
+    pos_fr[2] = z_offset;
+    calculate_ik_l(pos_bl, theta_bl);
+    calculate_ik_r(pos_br, theta_br);
+    calculate_ik_l(pos_fl, theta_fl);
+    calculate_ik_r(pos_fr, theta_fr);
+    set_join_array_leg(theta_bl, theta_br, theta_fl, theta_fr);
+    delay(delay_ms);
+  }
+  for (float x = -walkRadius; x < walkRadius; x += walkInterval) {
+    pos_bl[0] = x;
+    pos_br[0] = -x;
+    pos_fl[0] = -x;
+    pos_fr[0] = x;
+    float actual_z = sqrt(sq(walkRadius) - sq(x)) + z_offset;
+    pos_bl[2] = actual_z;
+    pos_br[2] = z_offset;
+    pos_fl[2] = z_offset;
+    pos_fr[2] = actual_z;
+    calculate_ik_l(pos_bl, theta_bl);
+    calculate_ik_r(pos_br, theta_br);
+    calculate_ik_l(pos_fl, theta_fl);
+    calculate_ik_r(pos_fr, theta_fr);
+    set_join_array_leg(theta_bl, theta_br, theta_fl, theta_fr);
     delay(delay_ms);
   }
 }
@@ -561,6 +614,9 @@ void loop() {
     case 8: 
       serialSetX(theta_l, theta_r);
       mode = -1;
+      break;
+    case 9:
+      walk_cycle_alternate();
       break;
   }
 }

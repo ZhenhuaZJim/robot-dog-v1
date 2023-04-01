@@ -158,10 +158,10 @@ void calculate_ik_l(float *coordinate, int *jointAngle) {
 
   float theta2 = 0;
   float theta3 = 0;
-//  Serial.println("Original Z: " + String(z) + " and theta_1: " + String(theta1));
+  //  Serial.println("Original Z: " + String(z) + " and theta_1: " + String(theta1));
   z = z - LENGTH_1 * sin(theta1);
   float length_ = sqrt(sq(x) + sq(z));
-//  Serial.println("calculate new Z: " + String(z) + " and length " + String(length_));
+  //  Serial.println("calculate new Z: " + String(z) + " and length " + String(length_));
   if (x >= 0) {
     theta2 = -( (acos(abs(z) / length_) - acos(-(sq(LENGTH_3) - sq(length_) - sq(LENGTH_2)) / (2 * length_ * LENGTH_2))));
     theta3 = acos(-(sq(length_) - sq(LENGTH_3) - sq(LENGTH_2)) / (2 * LENGTH_3 * LENGTH_2)) - 1.5708;
@@ -192,10 +192,10 @@ void calculate_ik_r(float *coordinate, int *jointAngle) {
 
   float theta2 = 0;
   float theta3 = 0;
-//  Serial.println("calculate_ik_r Original Z: " + String(z) + " and theta_1: " + String(theta1));
+  //  Serial.println("calculate_ik_r Original Z: " + String(z) + " and theta_1: " + String(theta1));
   z = z + LENGTH_1 * sin(theta1);
   float length_ = sqrt(sq(x) + sq(z));
-//  Serial.println("calculate_ik_r calculate new Z: " + String(z) + " and length " + String(length_));
+  //  Serial.println("calculate_ik_r calculate new Z: " + String(z) + " and length " + String(length_));
 
   if (x >= 0) {
     theta2 = -( (acos(abs(z) / length_) - acos(-(sq(LENGTH_3) - sq(length_) - sq(LENGTH_2)) / (2 * length_ * LENGTH_2))));
@@ -249,6 +249,115 @@ float setZHeight(float currX, float strideLength, float walkHeight) {
   return actualZ;
 }
 
+int calculate_servo_delay(const int* theta_fr, const int* theta_fr_before) {
+  int delay_ms = 0;
+  float rot_ve = 300;
+  for (int i = 0; i < 2; i++) {
+    int delta_theta = abs(theta_fr[i] - theta_fr_before[i]);
+    float delta_curr_ms = (float(delta_theta) / rot_ve) * 1000;
+    if (delta_curr_ms > delay_ms)
+      delay_ms = delta_curr_ms;
+    Serial.println("delta_theta: " + String(delta_theta) + " delta_curr_ms: " + String(delta_curr_ms) + " delay_ms: " + String(delay_ms));
+  }
+  return delay_ms;
+}
+
+float calculate_new_x(const float x, float velocity, const float delta_t) {
+  Serial.println("Current X: " + String(x) + " velocity: " + String(velocity));
+  float newX = x + velocity * (delta_t / 1000);
+  return newX;
+}
+
+void velocityControl() {
+  float pos_fr[3];
+  int theta_fr[3];
+  memcpy(pos_fr, default_pos_r, sizeof(pos_fr));
+  //  calculate_ik_r(pos_fr, theta_fr);
+  //  memcpy(theta_fr_before, theta_fr, sizeof(theta_fr_before));
+  float z_contact_offset = -120;
+  float z_walk_height = 20;
+  int delay_ms = 20;
+  float walk_stride = 40;
+  float xmin = -walk_stride / 2;
+  float xmax = walk_stride / 2;
+  float x = xmax;
+  float oldTime = millis(), currentTime = millis(), deltaTime = 0;
+  float velocity = 100; // mm per sec
+  pos_fr[0] = xmax;
+  // Contact phase
+  while (1) {
+    deltaTime = currentTime - oldTime;
+    oldTime = currentTime;
+    pos_fr[0] = calculate_new_x(pos_fr[0], -velocity, deltaTime);
+    Serial.println("contact Current X: " + String(pos_fr[0]) + " deltaTime: " + String(deltaTime));
+    Serial.println("pos_fr - 1 " + String(pos_fr[0]) + "--- 2 " + String(pos_fr[1]) + "--- 3 " + String(pos_fr[2]));
+    pos_fr[2] = z_contact_offset;
+    calculate_ik_r(pos_fr, theta_fr);
+    set_joint_array_fr(theta_fr);
+    delay(1);
+    currentTime = millis();
+    if (pos_fr[0] < xmin) {
+      break;
+    }
+  }
+  while (1) {
+    deltaTime = currentTime - oldTime;
+    oldTime = currentTime;
+    pos_fr[0] = calculate_new_x(pos_fr[0], velocity, deltaTime);
+    Serial.println("Swing Current X: " + String(pos_fr[0]) + " deltaTime: " + String(deltaTime));
+    Serial.println("pos_fr - 1 " + String(pos_fr[0]) + "--- 2 " + String(pos_fr[1]) + "--- 3 " + String(pos_fr[2]));
+    pos_fr[2] = z_contact_offset + setZHeight(pos_fr[0], walk_stride, z_walk_height);
+    calculate_ik_r(pos_fr, theta_fr);
+    set_joint_array_fr(theta_fr);
+    delay(1);
+    currentTime = millis();
+    if (pos_fr[0] > xmax) {
+      break;
+    }
+  }
+}
+
+void servoWaitTime() {
+  float pos_fr[3];
+  int theta_fr[3];
+  int theta_fr_before[3];
+  memcpy(pos_fr, default_pos_r, sizeof(pos_fr));
+  calculate_ik_r(pos_fr, theta_fr);
+  memcpy(theta_fr_before, theta_fr, sizeof(theta_fr_before));
+  float walkRadius = 60;
+  float walkInterval = 20;
+  float z_offset = -120;
+  float z_walk_height = 40;
+  int delay_ms = 20;
+  for (float x = walkRadius; x >= -walkRadius; x -= walkInterval) {
+    pos_fr[0] = x;
+    float actual_z = setZHeight(x, 2 * walkRadius, z_walk_height);
+    actual_z = actual_z + z_offset;
+    pos_fr[2] = z_offset;
+    calculate_ik_r(pos_fr, theta_fr);
+    if (x == walkRadius) {
+      memcpy(theta_fr_before, theta_fr, sizeof(theta_fr_before));
+    }
+    delay_ms = calculate_servo_delay(theta_fr, theta_fr_before);
+    set_joint_array_fr(theta_fr);
+    delay_ms = int(float(delay_ms) * 0.9);
+    delay(delay_ms);
+    memcpy(theta_fr_before, theta_fr, sizeof(theta_fr_before));
+  }
+  for (float x = -walkRadius; x <= walkRadius; x += walkInterval) {
+    pos_fr[0] = x;
+    float actual_z = setZHeight(x, 2 * walkRadius, z_walk_height);
+    actual_z = actual_z + z_offset;
+    pos_fr[2] = actual_z;
+    calculate_ik_r(pos_fr, theta_fr);
+    delay_ms = calculate_servo_delay(theta_fr, theta_fr_before);
+    set_joint_array_fr(theta_fr);
+    delay_ms = int(float(delay_ms) * 0.9);
+    delay(delay_ms);
+    memcpy(theta_fr_before, theta_fr, sizeof(theta_fr_before));
+  }
+}
+
 void walk_cycle_alternate() {
   float pos_bl[3];
   float pos_br[3];
@@ -262,11 +371,11 @@ void walk_cycle_alternate() {
   memcpy(pos_br, default_pos_r, sizeof(pos_br));
   memcpy(pos_fl, default_pos_l, sizeof(pos_fl));
   memcpy(pos_fr, default_pos_r, sizeof(pos_fr));
-  float walkRadius = 70;
+  float walkRadius = 20;
   float walkInterval = 5;
   float z_offset = -120;
-  float z_walk_height = 50;
-  int delay_ms = 20;
+  float z_walk_height = 40;
+  int delay_ms = 10;
   for (float x = walkRadius; x > -walkRadius; x -= walkInterval) {
     pos_bl[0] = x;
     pos_br[0] = -x;
@@ -580,14 +689,14 @@ void loop() {
   int theta_l[3] = {0, 0, 0};
   int serialIntOutput = 0;
 
-  Serial.println("Before Serial.available");
-  Serial.println("mode: " + String(mode));
+  //  Serial.println("Before Serial.available");
+  //  Serial.println("mode: " + String(mode));
   if (Serial.available()) {
     Serial.println("Pasrsing output");
     serialIntOutput = Serial.parseInt();
     Serial.println("Pasrsing output" + String(serialIntOutput));
   }
-  Serial.println("After Serial.available");
+  //  Serial.println("After Serial.available");
   if (serialIntOutput != 0) {
     mode = serialIntOutput;
   }
@@ -631,5 +740,10 @@ void loop() {
     case 9:
       walk_cycle_alternate();
       break;
+    case 10:
+      servoWaitTime();
+      break;
+    case 11:
+      velocityControl();
   }
 }

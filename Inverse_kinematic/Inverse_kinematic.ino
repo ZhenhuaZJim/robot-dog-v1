@@ -287,9 +287,9 @@ void initLeg(leg* currLeg, bool is_left){
   }
 }
 
-void contactLegXYZupdate(leg* currLeg, float velocity, float z_contact_offset, float z_walk_height, float deltaTime, bool is_left){
-  currLeg->pos[0] = calculate_new_x(currLeg->pos[0], -velocity, deltaTime);
-  currLeg->pos[1] = calculateNewY(currLeg->pos[1], -20, deltaTime);
+void contactLegXYZupdate(leg* currLeg, float xVelocity, float yVelocity, float z_contact_offset, float z_walk_height, float deltaTime, bool is_left){
+  currLeg->pos[0] = calculate_new_x(currLeg->pos[0], -xVelocity, deltaTime);
+  currLeg->pos[1] = calculateNewY(currLeg->pos[1], -yVelocity, deltaTime);
   currLeg->pos[2] = z_contact_offset;
   if (is_left)
     calculate_ik_l(currLeg->pos, currLeg->jointAngles);
@@ -297,9 +297,9 @@ void contactLegXYZupdate(leg* currLeg, float velocity, float z_contact_offset, f
     calculate_ik_r(currLeg->pos, currLeg->jointAngles);
 }
 
-void swingLegXYZupdate(leg* currLeg, float velocity, float walkStride, float z_contact_offset, float z_walk_height, float deltaTime, bool is_left){
-  currLeg->pos[0] = calculate_new_x(currLeg->pos[0], velocity, deltaTime);
-  currLeg->pos[1] = calculateNewY(currLeg->pos[1], 20, deltaTime);
+void swingLegXYZupdate(leg* currLeg, float xVelocity, float yVelocity, float walkStride, float z_contact_offset, float z_walk_height, float deltaTime, bool is_left){
+  currLeg->pos[0] = calculate_new_x(currLeg->pos[0], xVelocity, deltaTime);
+  currLeg->pos[1] = calculateNewY(currLeg->pos[1], yVelocity, deltaTime);
   currLeg->pos[2] = z_contact_offset + setZHeight(currLeg->pos[0], walkStride, z_walk_height);
   if (is_left)
     calculate_ik_l(currLeg->pos, currLeg->jointAngles);
@@ -313,27 +313,39 @@ void velocityControl() {
   initLeg(&frLeg, false);
   initLeg(&blLeg, true);
   initLeg(&brLeg, false);
+  
   float z_contact_offset = -120;
   float z_walk_height = 40;
+  
+  float xVelocity = 100; // mm per sec
   float walkStride = 80;
   float xmin = -walkStride / 2;
   float xmax = walkStride / 2;
-  float x = xmax;
-  float oldTime = millis(), currentTime = millis(), deltaTime = 0;
-  float velocity = 100; // mm per sec
   flLeg.pos[0] = xmin;
   frLeg.pos[0] = xmax;
   blLeg.pos[0] = xmax;
   brLeg.pos[0] = xmin;
+  
+  float yVelocity = -60; // mm per sec
+  float yStride = walkStride / xVelocity * yVelocity;
+  float ymin = -yStride / 2;
+  float ymax = yStride / 2;
+  Serial.println("yStride: " + String(yStride));
+  flLeg.pos[1] = flLeg.pos[1] + ymin;
+  frLeg.pos[1] = frLeg.pos[1] + ymax;
+  blLeg.pos[1] = blLeg.pos[1] + ymax;
+  brLeg.pos[1] = brLeg.pos[1] + ymin;
+  
   // Contact phase
+  float oldTime = millis(), currentTime = millis(), deltaTime = 0;
   while (1) {
     deltaTime = currentTime - oldTime;
     oldTime = currentTime;
     
-    swingLegXYZupdate(&flLeg, velocity, walkStride, z_contact_offset, z_walk_height, deltaTime, true);
-    contactLegXYZupdate(&frLeg, velocity, z_contact_offset, z_walk_height, deltaTime, false);    
-    contactLegXYZupdate(&blLeg, velocity, z_contact_offset, z_walk_height, deltaTime, true);
-    swingLegXYZupdate(&brLeg, velocity, walkStride, z_contact_offset, z_walk_height, deltaTime, false);
+    swingLegXYZupdate(&flLeg, xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, true);
+    contactLegXYZupdate(&frLeg, xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, false);    
+    contactLegXYZupdate(&blLeg, xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, true);
+    swingLegXYZupdate(&brLeg, xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, false);
 
     Serial.println("contact Current X: " + String(frLeg.pos[0]) + " deltaTime: " + String(deltaTime));
     Serial.println("flLeg - 1 " + String(flLeg.pos[0]) + "--- 2 " + String(flLeg.pos[1]) + "--- 3 " + String(flLeg.pos[2]));
@@ -355,10 +367,10 @@ void velocityControl() {
     deltaTime = currentTime - oldTime;
     oldTime = currentTime;
 
-    contactLegXYZupdate(&flLeg, velocity, z_contact_offset, z_walk_height, deltaTime, true);
-    swingLegXYZupdate(&frLeg, velocity, walkStride, z_contact_offset, z_walk_height, deltaTime, false);
-    swingLegXYZupdate(&blLeg, velocity, walkStride, z_contact_offset, z_walk_height, deltaTime, true);
-    contactLegXYZupdate(&brLeg, velocity, z_contact_offset, z_walk_height, deltaTime, false);
+    contactLegXYZupdate(&flLeg, xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, true);
+    swingLegXYZupdate(&frLeg, xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, false);
+    swingLegXYZupdate(&blLeg, xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, true);
+    contactLegXYZupdate(&brLeg, xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, false);
 
     Serial.println("contact Current X: " + String(frLeg.pos[0]) + " deltaTime: " + String(deltaTime));
     Serial.println("flLeg - 1 " + String(flLeg.pos[0]) + "--- 2 " + String(flLeg.pos[1]) + "--- 3 " + String(flLeg.pos[2]));

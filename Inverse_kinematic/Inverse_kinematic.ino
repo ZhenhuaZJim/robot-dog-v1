@@ -49,8 +49,12 @@ float default_pos_l[3] = {0, 75, -100};
 struct leg {
   float pos[3];
   int jointAngles[3];
+  bool legState = 0; // 0 for contact 1 for swing.
+  bool isLeftLeg = 0; // 0 for no 1 for yes
+  float currentPhase = 0.0;
   float phaseOffset = 0.0;
   float switchingPhase = 0.6;
+  float periodTimeNominal = 0.5; // seconds
 };
 
 int mode = 0;
@@ -279,7 +283,7 @@ float calculateNewY(const float y, float velocity, const float delta_t) {
   return newY;
 }
 
-void initLeg(leg* currLeg, bool is_left) {
+void initLeg(leg* currLeg, bool is_left, bool contactState) {
   if (is_left) {
     memcpy(currLeg->pos, default_pos_l, sizeof(currLeg->pos));
     calculate_ik_l(currLeg->pos, currLeg->jointAngles);
@@ -287,12 +291,15 @@ void initLeg(leg* currLeg, bool is_left) {
     memcpy(currLeg->pos, default_pos_r, sizeof(currLeg->pos));
     calculate_ik_r(currLeg->pos, currLeg->jointAngles);
   }
+  currLeg->isLeftLeg = is_left;
+  currLeg->legState = contactState;
 }
 
 void contactLegXYZupdate(leg* currLeg, float xVelocity, float yVelocity, float z_contact_offset, float z_walk_height, float deltaTime, bool is_left) {
   currLeg->pos[0] = calculate_new_x(currLeg->pos[0], -xVelocity, deltaTime);
   currLeg->pos[1] = calculateNewY(currLeg->pos[1], -yVelocity, deltaTime);
   currLeg->pos[2] = z_contact_offset;
+  currLeg->legState = 0;
   if (is_left)
     calculate_ik_l(currLeg->pos, currLeg->jointAngles);
   else
@@ -303,6 +310,7 @@ void swingLegXYZupdate(leg* currLeg, float xVelocity, float yVelocity, float wal
   currLeg->pos[0] = calculate_new_x(currLeg->pos[0], xVelocity, deltaTime);
   currLeg->pos[1] = calculateNewY(currLeg->pos[1], yVelocity, deltaTime);
   currLeg->pos[2] = z_contact_offset + setZHeight(currLeg->pos[0], walkStride, z_walk_height);
+  currLeg->legState = 1;
   if (is_left)
     calculate_ik_l(currLeg->pos, currLeg->jointAngles);
   else
@@ -313,12 +321,23 @@ void headingControl(leg *flLeg, leg *frLeg, leg *blLeg, leg *br) {
   return 0;
 }
 
+void gaitScheduler(leg* currLeg, float dt){
+  // contact state
+  float phase = dt / currLeg->periodTimeNominal;
+  currLeg->currentPhase = currLeg->currentPhase + phase;
+  if (currLeg->currentPhase > currLeg->switchingPhase){
+    currLeg->legState = 1;
+  } else {
+    currLeg->legState = 0;
+  }
+}
+
 void velocityControl() {
   leg flLeg, frLeg, blLeg, brLeg;
-  initLeg(&flLeg, true);
-  initLeg(&frLeg, false);
-  initLeg(&blLeg, true);
-  initLeg(&brLeg, false);
+  initLeg(&flLeg, true, 0);
+  initLeg(&frLeg, false, 1);
+  initLeg(&blLeg, true, 1);
+  initLeg(&brLeg, false, 0);
 
   float z_contact_offset = -120;
   float z_walk_height = 40;
@@ -328,7 +347,7 @@ void velocityControl() {
   int serialIntOutput = 0;
   float headingRad = (float(serialIntOutput) / 180 * 3.14);
   float totalVelocity = 300; //mm per sec
-  float walkStride = 40;
+  float walkStride = 80;
 
   float xVelocity = totalVelocity * cos(headingRad); // mm per sec
   float xStride = walkStride / totalVelocity * xVelocity;
@@ -347,6 +366,7 @@ void velocityControl() {
   frLeg.pos[1] = default_pos_r[1] + ymax;
   blLeg.pos[1] = default_pos_l[1] + ymax;
   brLeg.pos[1] = default_pos_r[1] + ymin;
+  leg legs[4] = {flLeg, frLeg, blLeg, brLeg};
   while (true) {
     if (Serial.available()) {
       Serial.println("Pasrsing output");
@@ -359,19 +379,27 @@ void velocityControl() {
       xStride = walkStride / totalVelocity * xVelocity;
       xmin = -xStride / 2;
       xmax = xStride / 2;
-      flLeg.pos[0] = xmin;
-      frLeg.pos[0] = xmax;
-      blLeg.pos[0] = xmax;
-      brLeg.pos[0] = xmin;
+      legs[0].pos[0] = xmin;
+      legs[1].pos[0] = xmax;
+      legs[2].pos[0] = xmax;
+      legs[3].pos[0] = xmin;
+//      flLeg.pos[0] = xmin;
+//      frLeg.pos[0] = xmax;
+//      blLeg.pos[0] = xmax;
+//      brLeg.pos[0] = xmin;
 
       yVelocity = totalVelocity * sin(headingRad); // mm per sec
       yStride = walkStride / totalVelocity * yVelocity;
       ymin = -yStride / 2;
       ymax = yStride / 2;
-      flLeg.pos[1] = default_pos_l[1] + ymin;
-      frLeg.pos[1] = default_pos_r[1] + ymax;
-      blLeg.pos[1] = default_pos_l[1] + ymax;
-      brLeg.pos[1] = default_pos_r[1] + ymin;
+      legs[0].pos[1] = default_pos_l[1] + ymin;
+      legs[1].pos[1] = default_pos_r[1] + ymax;
+      legs[2].pos[1] = default_pos_l[1] + ymax;
+      legs[3].pos[1] = default_pos_r[1] + ymin;
+//      flLeg.pos[1] = default_pos_l[1] + ymin;
+//      frLeg.pos[1] = default_pos_r[1] + ymax;
+//      blLeg.pos[1] = default_pos_l[1] + ymax;
+//      brLeg.pos[1] = default_pos_r[1] + ymin;
       Serial.println("xVelocity: " + String(yVelocity) + " xVelocity: " + String(yVelocity) + " headingRad: " + String(headingRad));
     }
     if (serialIntOutput == -1) {
@@ -381,53 +409,71 @@ void velocityControl() {
     while (1) {
       deltaTime = currentTime - oldTime;
       oldTime = currentTime;
-
-      swingLegXYZupdate(&flLeg, xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, true);
-      contactLegXYZupdate(&frLeg, xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, false);
-      contactLegXYZupdate(&blLeg, xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, true);
-      swingLegXYZupdate(&brLeg, xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, false);
-
-      Serial.println("contact Current X: " + String(frLeg.pos[0]) + " deltaTime: " + String(deltaTime));
-      Serial.println("flLeg - 1 " + String(flLeg.pos[0]) + "--- 2 " + String(flLeg.pos[1]) + "--- 3 " + String(flLeg.pos[2]));
-      Serial.println("frLeg - 1 " + String(frLeg.pos[0]) + "--- 2 " + String(frLeg.pos[1]) + "--- 3 " + String(frLeg.pos[2]));
-      Serial.println("blLeg - 1 " + String(blLeg.pos[0]) + "--- 2 " + String(blLeg.pos[1]) + "--- 3 " + String(blLeg.pos[2]));
-      Serial.println("brLeg - 1 " + String(brLeg.pos[0]) + "--- 2 " + String(brLeg.pos[1]) + "--- 3 " + String(brLeg.pos[2]));
-      Serial.println("flLeg - 1 " + String(flLeg.jointAngles[0]) + "--- 2 " + String(flLeg.jointAngles[1]) + "--- 3 " + String(flLeg.jointAngles[2]));
-      Serial.println("frLeg - 1 " + String(frLeg.jointAngles[0]) + "--- 2 " + String(frLeg.jointAngles[1]) + "--- 3 " + String(frLeg.jointAngles[2]));
-      Serial.println("blLeg - 1 " + String(blLeg.jointAngles[0]) + "--- 2 " + String(blLeg.jointAngles[1]) + "--- 3 " + String(blLeg.jointAngles[2]));
-      Serial.println("brLeg - 1 " + String(brLeg.jointAngles[0]) + "--- 2 " + String(brLeg.jointAngles[1]) + "--- 3 " + String(brLeg.jointAngles[2]));
-      set_join_array_leg(flLeg.jointAngles, frLeg.jointAngles, blLeg.jointAngles, brLeg.jointAngles);
-
-      currentTime = millis();
-      if (frLeg.pos[0] < xmin) {
-        break;
+      for (int i = 0; i < 4; i++){
+        if (legs[i].legState == 0){
+          contactLegXYZupdate(&legs[i], xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, legs[i].isLeftLeg);
+          if (legs[i].pos[0] < xmin)
+            legs[i].legState = 1;
+        } else {
+          swingLegXYZupdate(&legs[i], xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, legs[i].isLeftLeg);
+          if (legs[i].pos[0] > xmax)
+            legs[i].legState = 0;
+        }
       }
-    }
-    while (1) {
-      deltaTime = currentTime - oldTime;
-      oldTime = currentTime;
-
-      contactLegXYZupdate(&flLeg, xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, true);
-      swingLegXYZupdate(&frLeg, xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, false);
-      swingLegXYZupdate(&blLeg, xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, true);
-      contactLegXYZupdate(&brLeg, xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, false);
-
-      Serial.println("contact Current X: " + String(frLeg.pos[0]) + " deltaTime: " + String(deltaTime));
-      Serial.println("flLeg - 1 " + String(flLeg.pos[0]) + "--- 2 " + String(flLeg.pos[1]) + "--- 3 " + String(flLeg.pos[2]));
-      Serial.println("frLeg - 1 " + String(frLeg.pos[0]) + "--- 2 " + String(frLeg.pos[1]) + "--- 3 " + String(frLeg.pos[2]));
-      Serial.println("blLeg - 1 " + String(blLeg.pos[0]) + "--- 2 " + String(blLeg.pos[1]) + "--- 3 " + String(blLeg.pos[2]));
-      Serial.println("brLeg - 1 " + String(brLeg.pos[0]) + "--- 2 " + String(brLeg.pos[1]) + "--- 3 " + String(brLeg.pos[2]));
-      Serial.println("flLeg - 1 " + String(flLeg.jointAngles[0]) + "--- 2 " + String(flLeg.jointAngles[1]) + "--- 3 " + String(flLeg.jointAngles[2]));
-      Serial.println("frLeg - 1 " + String(frLeg.jointAngles[0]) + "--- 2 " + String(frLeg.jointAngles[1]) + "--- 3 " + String(frLeg.jointAngles[2]));
-      Serial.println("blLeg - 1 " + String(blLeg.jointAngles[0]) + "--- 2 " + String(blLeg.jointAngles[1]) + "--- 3 " + String(blLeg.jointAngles[2]));
-      Serial.println("brLeg - 1 " + String(brLeg.jointAngles[0]) + "--- 2 " + String(brLeg.jointAngles[1]) + "--- 3 " + String(brLeg.jointAngles[2]));
-      set_join_array_leg(flLeg.jointAngles, frLeg.jointAngles, blLeg.jointAngles, brLeg.jointAngles);
-
+      set_join_array_leg(legs[0].jointAngles, legs[1].jointAngles, legs[2].jointAngles, legs[3].jointAngles);
       currentTime = millis();
-      if (frLeg.pos[0] > xmax) {
-        break;
-      }
     }
+
+//    while (1) {
+//      deltaTime = currentTime - oldTime;
+//      oldTime = currentTime;
+//
+//      swingLegXYZupdate(&flLeg, xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, true);
+//      contactLegXYZupdate(&frLeg, xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, false);
+//      contactLegXYZupdate(&blLeg, xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, true);
+//      swingLegXYZupdate(&brLeg, xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, false);
+//
+//      Serial.println("contact Current X: " + String(frLeg.pos[0]) + " deltaTime: " + String(deltaTime));
+//      Serial.println("flLeg - 1 " + String(flLeg.pos[0]) + "--- 2 " + String(flLeg.pos[1]) + "--- 3 " + String(flLeg.pos[2]));
+//      Serial.println("frLeg - 1 " + String(frLeg.pos[0]) + "--- 2 " + String(frLeg.pos[1]) + "--- 3 " + String(frLeg.pos[2]));
+//      Serial.println("blLeg - 1 " + String(blLeg.pos[0]) + "--- 2 " + String(blLeg.pos[1]) + "--- 3 " + String(blLeg.pos[2]));
+//      Serial.println("brLeg - 1 " + String(brLeg.pos[0]) + "--- 2 " + String(brLeg.pos[1]) + "--- 3 " + String(brLeg.pos[2]));
+//      Serial.println("flLeg - 1 " + String(flLeg.jointAngles[0]) + "--- 2 " + String(flLeg.jointAngles[1]) + "--- 3 " + String(flLeg.jointAngles[2]));
+//      Serial.println("frLeg - 1 " + String(frLeg.jointAngles[0]) + "--- 2 " + String(frLeg.jointAngles[1]) + "--- 3 " + String(frLeg.jointAngles[2]));
+//      Serial.println("blLeg - 1 " + String(blLeg.jointAngles[0]) + "--- 2 " + String(blLeg.jointAngles[1]) + "--- 3 " + String(blLeg.jointAngles[2]));
+//      Serial.println("brLeg - 1 " + String(brLeg.jointAngles[0]) + "--- 2 " + String(brLeg.jointAngles[1]) + "--- 3 " + String(brLeg.jointAngles[2]));
+//      set_join_array_leg(flLeg.jointAngles, frLeg.jointAngles, blLeg.jointAngles, brLeg.jointAngles);
+//
+//      currentTime = millis();
+//      if (frLeg.pos[0] < xmin) {
+//        break;
+//      }
+//    }
+//    while (1) {
+//      deltaTime = currentTime - oldTime;
+//      oldTime = currentTime;
+//
+//      contactLegXYZupdate(&flLeg, xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, true);
+//      swingLegXYZupdate(&frLeg, xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, false);
+//      swingLegXYZupdate(&blLeg, xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, true);
+//      contactLegXYZupdate(&brLeg, xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, false);
+//
+//      Serial.println("contact Current X: " + String(frLeg.pos[0]) + " deltaTime: " + String(deltaTime));
+//      Serial.println("flLeg - 1 " + String(flLeg.pos[0]) + "--- 2 " + String(flLeg.pos[1]) + "--- 3 " + String(flLeg.pos[2]));
+//      Serial.println("frLeg - 1 " + String(frLeg.pos[0]) + "--- 2 " + String(frLeg.pos[1]) + "--- 3 " + String(frLeg.pos[2]));
+//      Serial.println("blLeg - 1 " + String(blLeg.pos[0]) + "--- 2 " + String(blLeg.pos[1]) + "--- 3 " + String(blLeg.pos[2]));
+//      Serial.println("brLeg - 1 " + String(brLeg.pos[0]) + "--- 2 " + String(brLeg.pos[1]) + "--- 3 " + String(brLeg.pos[2]));
+//      Serial.println("flLeg - 1 " + String(flLeg.jointAngles[0]) + "--- 2 " + String(flLeg.jointAngles[1]) + "--- 3 " + String(flLeg.jointAngles[2]));
+//      Serial.println("frLeg - 1 " + String(frLeg.jointAngles[0]) + "--- 2 " + String(frLeg.jointAngles[1]) + "--- 3 " + String(frLeg.jointAngles[2]));
+//      Serial.println("blLeg - 1 " + String(blLeg.jointAngles[0]) + "--- 2 " + String(blLeg.jointAngles[1]) + "--- 3 " + String(blLeg.jointAngles[2]));
+//      Serial.println("brLeg - 1 " + String(brLeg.jointAngles[0]) + "--- 2 " + String(brLeg.jointAngles[1]) + "--- 3 " + String(brLeg.jointAngles[2]));
+//      set_join_array_leg(flLeg.jointAngles, frLeg.jointAngles, blLeg.jointAngles, brLeg.jointAngles);
+//
+//      currentTime = millis();
+//      if (frLeg.pos[0] > xmax) {
+//        break;
+//      }
+//    }
   }
 
 }

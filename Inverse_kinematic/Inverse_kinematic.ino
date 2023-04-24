@@ -323,10 +323,13 @@ void headingControl(leg *flLeg, leg *frLeg, leg *blLeg, leg *br) {
 
 void gaitScheduler(leg* currLeg, float dt) {
   // contact state
-  float phase = dt / currLeg->periodTimeNominal;
-  currLeg->currentPhase = currLeg->currentPhase + phase;
+  float dtPhase = dt / currLeg->periodTimeNominal;
+  currLeg->currentPhase = currLeg->currentPhase + dtPhase;
   if (currLeg->currentPhase > currLeg->switchingPhase) {
     currLeg->legState = 1;
+  } else if (currLeg->currentPhase > 1) {
+    currLeg->legState = 0;
+    currLeg->currentPhase = 0;
   } else {
     currLeg->legState = 0;
   }
@@ -373,6 +376,9 @@ void velocityControl() {
       serialIntOutput = Serial.parseInt();
       Serial.println("Pasrsing output" + String(serialIntOutput));
     }
+    if (int(serialIntOutput) == -1) {
+      return 0;
+    }
     if (serialIntOutput != 0) {
       headingRad = (float(serialIntOutput) / 180 * 3.14);
       xVelocity = totalVelocity * cos(headingRad); // mm per sec
@@ -394,9 +400,6 @@ void velocityControl() {
       legs[3].pos[1] = default_pos_r[1] + ymin;
       Serial.println("xVelocity: " + String(yVelocity) + " xVelocity: " + String(yVelocity) + " headingRad: " + String(headingRad));
     }
-    if (serialIntOutput == -1) {
-      return 0;
-    }
 
     deltaTime = currentTime - oldTime;
     oldTime = currentTime;
@@ -414,7 +417,6 @@ void velocityControl() {
     set_join_array_leg(legs[0].jointAngles, legs[1].jointAngles, legs[2].jointAngles, legs[3].jointAngles);
     currentTime = millis();
   }
-
 }
 
 void servoWaitTime() {
@@ -845,5 +847,7 @@ void loop() {
       break;
     case 11:
       velocityControl();
+      mode = -1;
+      break;
   }
 }

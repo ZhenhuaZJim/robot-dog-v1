@@ -54,7 +54,7 @@ struct leg {
   float currentPhase = 0.0;
   float phaseOffset = 0.0;
   float switchingPhase = 0.6;
-  float periodTimeNominal = 0.5; // seconds
+  float periodTimeNominal = 1.0; // seconds
 };
 
 int mode = 0;
@@ -323,9 +323,10 @@ void headingControl(leg *flLeg, leg *frLeg, leg *blLeg, leg *br) {
 
 void gaitScheduler(leg* currLeg, float dt) {
   // contact state
-  float dtPhase = dt / currLeg->periodTimeNominal;
+  float dtPhase = dt / 1000 / currLeg->periodTimeNominal;
   currLeg->currentPhase = currLeg->currentPhase + dtPhase;
-  if (currLeg->currentPhase > currLeg->switchingPhase) {
+  Serial.println("currLeg currentPhase: " + String(currLeg->currentPhase) + " dtPhase: " + String(dtPhase) + " dt: " + String(dt));
+  if (currLeg->currentPhase >= currLeg->switchingPhase && currLeg->currentPhase < 1) {
     currLeg->legState = 1;
   } else if (currLeg->currentPhase > 1) {
     currLeg->legState = 0;
@@ -342,6 +343,9 @@ void velocityControl() {
   initLeg(&blLeg, true, 1);
   initLeg(&brLeg, false, 0);
 
+  flLeg.currentPhase = 0.6;
+//  brLeg.legState = 1;
+
   float z_contact_offset = -120;
   float z_walk_height = 40;
 
@@ -349,10 +353,14 @@ void velocityControl() {
   float oldTime = millis(), currentTime = millis(), deltaTime = 0;
   int serialIntOutput = 0;
   float headingRad = (float(serialIntOutput) / 180 * 3.14);
-  float totalVelocity = 300; //mm per sec
   float walkStride = 80;
+  float totalVelocity = 300; //mm per sec
+  totalVelocity = walkStride / (frLeg.periodTimeNominal * frLeg.switchingPhase);
+  float swingVelocity = walkStride / (frLeg.periodTimeNominal * (1 - frLeg.switchingPhase));
+  Serial.println("totalVelocity: " + String(totalVelocity));
 
   float xVelocity = totalVelocity * cos(headingRad); // mm per sec
+  float xVelocitySwing = swingVelocity * cos(headingRad); // mm per sec
   float xStride = walkStride / totalVelocity * xVelocity;
   float xmin = -xStride / 2;
   float xmax = xStride / 2;
@@ -362,6 +370,7 @@ void velocityControl() {
   brLeg.pos[0] = xmin;
 
   float yVelocity = totalVelocity * sin(headingRad); // mm per sec
+  float yVelocitySwing = swingVelocity * sin(headingRad); // mm per sec
   float yStride = walkStride / totalVelocity * yVelocity;
   float ymin = -yStride / 2;
   float ymax = yStride / 2;
@@ -401,18 +410,21 @@ void velocityControl() {
       Serial.println("xVelocity: " + String(yVelocity) + " xVelocity: " + String(yVelocity) + " headingRad: " + String(headingRad));
     }
 
-    deltaTime = currentTime - oldTime;
+    deltaTime = currentTime - oldTime; // deltaTime is in milliseconds
     oldTime = currentTime;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 1; i++) {
       if (legs[i].legState == 0) {
         contactLegXYZupdate(&legs[i], xVelocity, yVelocity, z_contact_offset, z_walk_height, deltaTime, legs[i].isLeftLeg);
-        if (legs[i].pos[0] < xmin)
-          legs[i].legState = 1;
+        Serial.println("contact leg " + String(i) + " x: " + String(legs[i].pos[0]) + " y: " + String(legs[i].pos[1]) + " z: " + String(legs[i].pos[2]) + " currentPhase: " + String(legs[i].currentPhase));
+        //        if (legs[i].pos[0] < xmin)
+        //          legs[i].legState = 1;
       } else {
-        swingLegXYZupdate(&legs[i], xVelocity, yVelocity, walkStride, z_contact_offset, z_walk_height, deltaTime, legs[i].isLeftLeg);
-        if (legs[i].pos[0] > xmax)
-          legs[i].legState = 0;
+        swingLegXYZupdate(&legs[i], xVelocitySwing, yVelocitySwing, walkStride, z_contact_offset, z_walk_height, deltaTime, legs[i].isLeftLeg);
+        Serial.println("swing leg " + String(i) + " x: " + String(legs[i].pos[0]) + " y: " + String(legs[i].pos[1]) + " z: " + String(legs[i].pos[2]) + " currentPhase: " + String(legs[i].currentPhase));
+        //        if (legs[i].pos[0] > xmax)
+        //          legs[i].legState = 0;
       }
+      gaitScheduler(&legs[i], deltaTime);
     }
     set_join_array_leg(legs[0].jointAngles, legs[1].jointAngles, legs[2].jointAngles, legs[3].jointAngles);
     currentTime = millis();

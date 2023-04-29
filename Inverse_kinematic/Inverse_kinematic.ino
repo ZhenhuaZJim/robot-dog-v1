@@ -1,39 +1,3 @@
-#include <Adafruit_PWMServoDriver.h>
-
-Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
-
-// ----------------------Individual Servo Configuration----------------
-// Back left leg
-#define Servo0Min 610
-#define Servo0Max 2580
-#define Servo1Min 580
-#define Servo1Max 2470
-#define Servo2Min 650
-#define Servo2Max 2560
-// Back right leg
-#define Servo3Min 620
-#define Servo3Max 2590
-#define Servo4Min 550
-#define Servo4Max 2500
-#define Servo5Min 540
-#define Servo5Max 2480
-// Front left leg
-#define Servo6Min 610
-#define Servo6Max 2510
-#define Servo7Min 550
-#define Servo7Max 2440
-#define Servo8Min 650
-#define Servo8Max 2590
-// Front Right leg
-#define Servo9Min 610
-#define Servo9Max 2510
-#define Servo10Min 530
-#define Servo10Max 2420
-#define Servo11Min 660
-#define Servo11Max 2600
-
-#define SERVOFREQ 50
-#define DEFAULT_FREQUENCY 27000000
 
 // --------------------Robot configuration----------------------
 // Leg configuration
@@ -42,7 +6,6 @@ float LENGTH_2 = 70; // mm
 float LENGTH_3 = 90; // mm
 
 int n = -1;
-int PWM = 0;
 float default_pos_r[3] = {0, -75, -100};
 float default_pos_l[3] = {0, 75, -100};
 
@@ -54,107 +17,12 @@ struct leg {
   float currentPhase = 0.0;
   float phaseOffset = 0.0;
   float switchingPhase = 0.6;
-  float periodTimeNominal = 0.5; // seconds
+  float periodTimeNominal = 1.0; // seconds
   float xRange[2];
   float yRange[2];
 };
 
 int mode = 0;
-
-// Back left leg
-void set_joint_1(int theta) {
-  uint16_t off = map(theta, -90, 90, Servo2Min, Servo2Max);
-  pwm.writeMicroseconds(2, off);
-}
-
-void set_joint_2(int theta) {
-  uint16_t off = map(theta, 90, -90, Servo1Min, Servo1Max);
-  pwm.writeMicroseconds(1, off);
-}
-
-void set_joint_3(int theta) {
-  uint16_t off = map(theta, 90, -90, Servo0Min, Servo0Max);
-  pwm.writeMicroseconds(0, off);
-}
-
-// Back right leg
-void set_joint_4(int theta) {
-  uint16_t off = map(theta, -90, 90, Servo5Min, Servo5Max);
-  pwm.writeMicroseconds(5, off);
-}
-
-void set_joint_5(int theta) {
-  uint16_t off = map(theta, -90, 90, Servo4Min, Servo4Max);
-  pwm.writeMicroseconds(4, off);
-}
-
-void set_joint_6(int theta) {
-  uint16_t off = map(theta, -90, 90, Servo3Min, Servo3Max);
-  pwm.writeMicroseconds(3, off);
-}
-
-// Front left leg
-void set_joint_7(int theta) {
-  uint16_t off = map(theta, 90, -90, Servo8Min, Servo8Max);
-  pwm.writeMicroseconds(8, off);
-}
-
-void set_joint_8(int theta) {
-  uint16_t off = map(theta, 90, -90, Servo7Min, Servo7Max);
-  pwm.writeMicroseconds(7, off);
-}
-
-void set_joint_9(int theta) {
-  uint16_t off = map(theta, 90, -90, Servo6Min, Servo6Max);
-  pwm.writeMicroseconds(6, off);
-}
-
-// Front right leg
-void set_joint_10(int theta) {
-  uint16_t off = map(theta, 90, -90, Servo11Min, Servo11Max);
-  pwm.writeMicroseconds(11, off);
-}
-
-void set_joint_11(int theta) {
-  uint16_t off = map(theta, -90, 90, Servo10Min, Servo10Max);
-  pwm.writeMicroseconds(10, off);
-}
-
-void set_joint_12(int theta) {
-  uint16_t off = map(theta, -90, 90, Servo9Min, Servo9Max);
-  pwm.writeMicroseconds(9, off);
-}
-
-void set_joint_array_bl(int *jointAngle) {
-  set_joint_1(jointAngle[0]);
-  set_joint_2(jointAngle[1]);
-  set_joint_3(jointAngle[2]);
-}
-
-void set_joint_array_br(int *jointAngle) {
-  set_joint_4(jointAngle[0]);
-  set_joint_5(jointAngle[1]);
-  set_joint_6(jointAngle[2]);
-}
-
-void set_joint_array_fl(int *jointAngle) {
-  set_joint_7(jointAngle[0]);
-  set_joint_8(jointAngle[1]);
-  set_joint_9(jointAngle[2]);
-}
-
-void set_joint_array_fr(int *jointAngle) {
-  set_joint_10(jointAngle[0]);
-  set_joint_11(jointAngle[1]);
-  set_joint_12(jointAngle[2]);
-}
-
-void set_join_array_leg(const int* flAngles, const int* frAngles, const int* blAngles, const int* brAngles) {
-  set_joint_array_fl(flAngles);
-  set_joint_array_fr(frAngles);
-  set_joint_array_bl(blAngles);
-  set_joint_array_br(brAngles);
-}
 
 void calculate_ik_l(float *coordinate, int *jointAngle) {
   float x = coordinate[0];
@@ -226,7 +94,6 @@ void calculate_ik_r(float *coordinate, int *jointAngle) {
 
 float setZHeight(float currX, float strideLength, float walkHeight) {
   float actualZ = -(4 * walkHeight) / (sq(abs(strideLength))) * sq(currX) + walkHeight;
-  //  Serial.println("Current X: " + String(currX) + " actualZ: " + String(actualZ));
   return actualZ;
 }
 
@@ -264,7 +131,6 @@ void initLeg(leg* currLeg, bool is_left, bool contactState) {
   currLeg->isLeftLeg = is_left;
   currLeg->legState = contactState;
 }
-
 
 float calculateNewPos(float xMin, float xMax, float currPhasePercent){
   float x = xMin + (xMax - xMin) * currPhasePercent;
@@ -310,6 +176,20 @@ void gaitScheduler(leg* currLeg, float dt) {
   }
 }
 
+void updateLegXRange(leg* legs, float rangeMin, float rangeMax){
+  legs[0].xRange[0] = rangeMin, legs[0].xRange[1] = rangeMax;
+  legs[1].xRange[0] = rangeMin, legs[1].xRange[1] = rangeMax;
+  legs[2].xRange[0] = rangeMin, legs[2].xRange[1] = rangeMax;
+  legs[3].xRange[0] = rangeMin, legs[3].xRange[1] = rangeMax;
+}
+
+void updateLegYRange(leg* legs, float rangeMin, float rangeMax){
+  legs[0].yRange[0] = default_pos_l[1] + rangeMin, legs[0].yRange[1] = default_pos_l[1] + rangeMax;
+  legs[1].yRange[0] = default_pos_r[1] + rangeMin, legs[1].yRange[1] = default_pos_r[1] + rangeMax;
+  legs[2].yRange[0] = default_pos_l[1] + rangeMin, legs[2].yRange[1] = default_pos_l[1] + rangeMax;
+  legs[3].yRange[0] = default_pos_r[1] + rangeMin, legs[3].yRange[1] = default_pos_r[1] + rangeMax;
+}
+
 void velocityControl() {
   leg flLeg, frLeg, blLeg, brLeg;
   initLeg(&flLeg, true, 0);
@@ -317,86 +197,48 @@ void velocityControl() {
   initLeg(&blLeg, true, 1);
   initLeg(&brLeg, false, 0);
 
-  flLeg.currentPhase = 0.6;
-  brLeg.currentPhase = 0.6;
+  flLeg.currentPhase = 0.5;
+  frLeg.currentPhase = 0.0;
+  blLeg.currentPhase = 0.0;
+  brLeg.currentPhase = 0.5;
+  
+  leg legs[4] = {flLeg, frLeg, blLeg, brLeg};
 
   float z_contact_offset = -120;
   float z_walk_height = 40;
+  float walkStride = 50;
 
   // Contact phase
-  float oldTime = millis(), currentTime = millis(), deltaTime = 0;
   int serialIntOutput = 0;
   float headingRad = (float(serialIntOutput) / 180 * 3.14);
-  float walkStride = 80;
-  float totalVelocity = 300; //mm per sec
-  totalVelocity = walkStride / (frLeg.periodTimeNominal * frLeg.switchingPhase);
-  float swingVelocity = walkStride / (frLeg.periodTimeNominal * (1 - frLeg.switchingPhase));
+  
+  float xStride = walkStride * cos(headingRad);
+  float xmin = -xStride / 2, xmax = xStride / 2;
+  updateLegXRange(legs, xmin, xmax);
 
-  float xVelocity = totalVelocity * cos(headingRad); // mm per sec
-  float xVelocitySwing = swingVelocity * cos(headingRad); // mm per sec
-  float xStride = walkStride / totalVelocity * xVelocity;
-  float xmin = -xStride / 2;
-  float xmax = xStride / 2;
-  flLeg.xRange[0] = xmin, flLeg.xRange[1] = xmax;
-  frLeg.xRange[0] = xmin, frLeg.xRange[1] = xmax;
-  blLeg.xRange[0] = xmin, blLeg.xRange[1] = xmax;
-  brLeg.xRange[0] = xmin, brLeg.xRange[1] = xmax;
-  flLeg.pos[0] = xmin;
-  frLeg.pos[0] = xmax;
-  blLeg.pos[0] = xmax;
-  brLeg.pos[0] = xmin;
-
-  float yVelocity = totalVelocity * sin(headingRad); // mm per sec
-  float yVelocitySwing = swingVelocity * sin(headingRad); // mm per sec
-  float yStride = walkStride / totalVelocity * yVelocity;
-  float ymin = -yStride / 2;
-  float ymax = yStride / 2;
-  flLeg.yRange[0] = default_pos_l[1] + ymin, flLeg.yRange[1] = default_pos_l[1] + ymax;
-  frLeg.yRange[0] = default_pos_r[1] + ymin, frLeg.yRange[1] = default_pos_r[1] + ymax;
-  blLeg.yRange[0] = default_pos_l[1] + ymin, blLeg.yRange[1] = default_pos_l[1] + ymax;
-  brLeg.yRange[0] = default_pos_r[1] + ymin, brLeg.yRange[1] = default_pos_r[1] + ymax;
-  flLeg.pos[1] = default_pos_l[1] + ymin;
-  frLeg.pos[1] = default_pos_r[1] + ymax;
-  blLeg.pos[1] = default_pos_l[1] + ymax;
-  brLeg.pos[1] = default_pos_r[1] + ymin;
-  leg legs[4] = {flLeg, frLeg, blLeg, brLeg};
+  float yStride = walkStride * sin(headingRad);
+  float ymin = -yStride / 2, ymax = yStride / 2;
+  updateLegYRange(legs, ymin, ymax);
+  
+  float oldTime = millis(), currentTime = millis(), deltaTime = 0;
   while (true) {
     if (Serial.available()) {
       Serial.println("Pasrsing output");
       serialIntOutput = Serial.parseInt();
-      Serial.println("Pasrsing output" + String(serialIntOutput));
+      Serial.println("Pasrsing output: " + String(serialIntOutput));
     }
     if (int(serialIntOutput) == -1) {
       return 0;
     }
     if (serialIntOutput != 0) {
       headingRad = (float(serialIntOutput) / 180 * 3.14);
-      xVelocity = totalVelocity * cos(headingRad); // mm per sec
-      xStride = walkStride / totalVelocity * xVelocity;
-      xmin = -xStride / 2;
-      xmax = xStride / 2;
-      legs[0].xRange[0] = xmin, legs[0].xRange[1] = xmax;
-      legs[1].xRange[0] = xmin, legs[1].xRange[1] = xmax;
-      legs[2].xRange[0] = xmin, legs[2].xRange[1] = xmax;
-      legs[3].xRange[0] = xmin, legs[3].xRange[1] = xmax;
-      legs[0].pos[0] = xmin;
-      legs[1].pos[0] = xmax;
-      legs[2].pos[0] = xmax;
-      legs[3].pos[0] = xmin;
+      xStride = walkStride * cos(headingRad);
+      xmin = -xStride / 2, xmax = xStride / 2;
+      updateLegXRange(legs, xmin, xmax);
 
-      yVelocity = totalVelocity * sin(headingRad); // mm per sec
-      yStride = walkStride / totalVelocity * yVelocity;
-      ymin = -yStride / 2;
-      ymax = yStride / 2;
-      legs[0].yRange[0] = default_pos_l[1] + ymin, legs[0].yRange[1] = default_pos_r[1] + ymax;
-      legs[1].yRange[0] = default_pos_l[1] + ymin, legs[1].yRange[1] = default_pos_r[1] + ymax;
-      legs[2].yRange[0] = default_pos_l[1] + ymin, legs[2].yRange[1] = default_pos_r[1] + ymax;
-      legs[3].yRange[0] = default_pos_l[1] + ymin, legs[3].yRange[1] = default_pos_r[1] + ymax;
-      legs[0].pos[1] = default_pos_l[1] + ymin;
-      legs[1].pos[1] = default_pos_r[1] + ymax;
-      legs[2].pos[1] = default_pos_l[1] + ymax;
-      legs[3].pos[1] = default_pos_r[1] + ymin;
-      Serial.println("xVelocity: " + String(yVelocity) + " xVelocity: " + String(yVelocity) + " headingRad: " + String(headingRad));
+      yStride = walkStride * sin(headingRad);
+      ymin = -yStride / 2, ymax = yStride / 2;
+      updateLegYRange(legs, ymin, ymax);
     }
 
     deltaTime = currentTime - oldTime; // deltaTime is in milliseconds
@@ -416,260 +258,10 @@ void velocityControl() {
   }
 }
 
-void stand_cycle(int *theta_l, int *theta_r) {
-  float pos_r[3], pos_l[3];
-  memcpy(pos_r, default_pos_r, sizeof(pos_r));
-  memcpy(pos_l, default_pos_l, sizeof(pos_l));
-  float standOffSet = 40;
-  float standInterval = 5;
-  float z_offset = -90;
-  int delay_ms = 50;
-  for (float z = standOffSet; z > -standOffSet; z -= standInterval) {
-    float actual_z = z + z_offset;
-    pos_r[2] = actual_z;
-    pos_l[2] = actual_z;
-    //    Serial.println("Position_r - x " + String(pos_r[0]) + "--- y " + String(pos_r[1]) + "--- z " + String(pos_r[2]));
-    //    Serial.println("Position_l - x " + String(pos_l[0]) + "--- y " + String(pos_l[1]) + "--- z " + String(pos_l[2]));
-    calculate_ik_r(pos_r, theta_r);
-    calculate_ik_l(pos_l, theta_l);
-    set_join_array_leg(theta_l, theta_r, theta_l, theta_r);
-    //    Serial.println("joint_angle_r - 1 " + String(theta_r[0]) + "--- 2 " + String(theta_r[1]) + "--- 3 " + String(theta_r[2]));
-    //    Serial.println("joint_angle_l - 1 " + String(theta_l[0]) + "--- 2 " + String(theta_l[1]) + "--- 3 " + String(theta_l[2]));
-    delay(delay_ms);
-  }
-  for (float z = -standOffSet; z < standOffSet; z += standInterval) {
-    float actual_z = z + z_offset;
-    pos_r[2] = actual_z;
-    pos_l[2] = actual_z;
-    //    Serial.println("Position_r - x " + String(pos_r[0]) + "--- y " + String(pos_r[1]) + "--- z " + String(pos_r[2]));
-    //    Serial.println("Position_l - x " + String(pos_l[0]) + "--- y " + String(pos_l[1]) + "--- z " + String(pos_l[2]));
-    calculate_ik_r(pos_r, theta_r);
-    calculate_ik_l(pos_l, theta_l);
-    set_join_array_leg(theta_l, theta_r, theta_l, theta_r);
-    //    Serial.println("joint_angle_r - 1 " + String(theta_r[0]) + "--- 2 " + String(theta_r[1]) + "--- 3 " + String(theta_r[2]));
-    //    Serial.println("joint_angle_l - 1 " + String(theta_l[0]) + "--- 2 " + String(theta_l[1]) + "--- 3 " + String(theta_l[2]));
-    delay(delay_ms);
-  }
-}
-
-int serialSetX(int *theta_l, int *theta_r) {
-  float pos_r[3], pos_l[3];
-  memcpy(pos_r, default_pos_r, sizeof(pos_r));
-  memcpy(pos_l, default_pos_l, sizeof(pos_l));
-  int delay_ms = 50;
-  int serialIntOutput = 0;
-  while (true) {
-    if (Serial.available()) {
-      Serial.println("Pasrsing output");
-      serialIntOutput = Serial.parseInt();
-      Serial.println("Pasrsing output" + String(serialIntOutput));
-    }
-    if (serialIntOutput != 0) {
-      pos_r[0] = serialIntOutput;
-      pos_l[0] = serialIntOutput;
-      calculate_ik_r(pos_r, theta_r);
-      calculate_ik_l(pos_l, theta_l);
-      set_join_array_leg(theta_l, theta_r, theta_l, theta_r);
-    }
-    if (serialIntOutput == -1) {
-      return 0;
-    }
-  }
-}
-
-int serialSetY(int *theta_l, int *theta_r) {
-  float pos_bl[3];
-  float pos_br[3];
-  float pos_fl[3];
-  float pos_fr[3];
-  int theta_bl[3];
-  int theta_br[3];
-  int theta_fl[3];
-  int theta_fr[3];
-  int delay_ms = 50;
-  int serialIntOutput = 0;
-  while (true) {
-    if (Serial.available()) {
-      Serial.println("Pasrsing output");
-      serialIntOutput = Serial.parseInt();
-      Serial.println("Pasrsing output" + String(serialIntOutput));
-    }
-    if (serialIntOutput != 0) {
-      memcpy(pos_bl, default_pos_l, sizeof(pos_bl));
-      memcpy(pos_br, default_pos_r, sizeof(pos_br));
-      memcpy(pos_fl, default_pos_l, sizeof(pos_fl));
-      memcpy(pos_fr, default_pos_r, sizeof(pos_fr));
-      pos_bl[1] = pos_bl[1] + serialIntOutput;
-      pos_br[1] = pos_br[1] + serialIntOutput;
-      pos_fl[1] = pos_fl[1] + serialIntOutput;
-      pos_fr[1] = pos_fr[1] + serialIntOutput;
-      calculate_ik_l(pos_bl, theta_bl);
-      calculate_ik_r(pos_br, theta_br);
-      calculate_ik_l(pos_fl, theta_fl);
-      calculate_ik_r(pos_fr, theta_fr);
-      Serial.println("pos_fl - 1 " + String(pos_fl[0]) + "--- 2 " + String(pos_fl[1]) + "--- 3 " + String(pos_fl[2]));
-      Serial.println("pos_fr - 1 " + String(pos_fr[0]) + "--- 2 " + String(pos_fr[1]) + "--- 3 " + String(pos_fr[2]));
-      Serial.println("pos_bl - 1 " + String(pos_bl[0]) + "--- 2 " + String(pos_bl[1]) + "--- 3 " + String(pos_bl[2]));
-      Serial.println("pos_br - 1 " + String(pos_br[0]) + "--- 2 " + String(pos_br[1]) + "--- 3 " + String(pos_br[2]));
-      Serial.println("theta_fl - 1 " + String(theta_fl[0]) + "--- 2 " + String(theta_fl[1]) + "--- 3 " + String(theta_fl[2]));
-      Serial.println("theta_fr - 1 " + String(theta_fr[0]) + "--- 2 " + String(theta_fr[1]) + "--- 3 " + String(theta_fr[2]));
-      Serial.println("theta_bl - 1 " + String(theta_bl[0]) + "--- 2 " + String(theta_bl[1]) + "--- 3 " + String(theta_bl[2]));
-      Serial.println("theta_br - 1 " + String(theta_br[0]) + "--- 2 " + String(theta_br[1]) + "--- 3 " + String(theta_br[2]));
-      set_join_array_leg(theta_fl, theta_fr, theta_bl, theta_br);
-    }
-    if (serialIntOutput == -1) {
-      return 0;
-    }
-  }
-}
-
-int serialSetZ(int *theta_l, int *theta_r) {
-  float pos_r[3], pos_l[3];
-  memcpy(pos_r, default_pos_r, sizeof(pos_r));
-  memcpy(pos_l, default_pos_l, sizeof(pos_l));
-  int delay_ms = 50;
-  int serialIntOutput = 0;
-  while (true) {
-    if (Serial.available()) {
-      Serial.println("Pasrsing output");
-      serialIntOutput = Serial.parseInt();
-      Serial.println("Pasrsing output" + String(serialIntOutput));
-    }
-    if (serialIntOutput < 0) {
-      pos_r[2] = serialIntOutput;
-      pos_l[2] = serialIntOutput;
-      calculate_ik_r(pos_r, theta_r);
-      calculate_ik_l(pos_l, theta_l);
-      set_join_array_leg(theta_l, theta_r, theta_l, theta_r);
-    }
-    if (serialIntOutput == -1) {
-      return 0;
-    }
-  }
-}
-
-void serialSetBodyRotX(int *theta_l, int *theta_r) {
-  float pos_r[3], pos_l[3];
-  int delay_ms = 50;
-  int serialIntOutput = 0;
-  while (true) {
-    if (Serial.available()) {
-      Serial.println("Pasrsing output");
-      serialIntOutput = Serial.parseInt();
-      Serial.println("Pasrsing output" + String(serialIntOutput));
-    }
-    if (serialIntOutput != 0) {
-      memcpy(pos_r, default_pos_r, sizeof(pos_r));
-      memcpy(pos_l, default_pos_l, sizeof(pos_l));
-      float rad = float(serialIntOutput) * (3.14 / 180);
-      float dz = 232 / 2 * float(sin(rad)); // 232 is the body length in y direction
-      pos_r[2] = pos_r[2] + dz;
-      pos_l[2] = pos_l[2] - dz;
-      calculate_ik_r(pos_r, theta_r);
-      calculate_ik_l(pos_l, theta_l);
-      set_join_array_leg(theta_l, theta_r, theta_l, theta_r);
-    }
-    if (serialIntOutput == -1) {
-      return 0;
-    }
-  }
-}
-
-void serialSetBodyRotY(int *theta_l, int *theta_r) {
-  float pos_bl[3];
-  float pos_br[3];
-  float pos_fl[3];
-  float pos_fr[3];
-  int theta_bl[3];
-  int theta_br[3];
-  int theta_fl[3];
-  int theta_fr[3];
-  int delay_ms = 50;
-  int serialIntOutput = 0;
-  while (true) {
-    if (Serial.available()) {
-      Serial.println("Pasrsing output");
-      serialIntOutput = Serial.parseInt();
-      Serial.println("Pasrsing output" + String(serialIntOutput));
-    }
-    if (serialIntOutput != 0) {
-      memcpy(pos_bl, default_pos_l, sizeof(pos_bl));
-      memcpy(pos_br, default_pos_r, sizeof(pos_br));
-      memcpy(pos_fl, default_pos_l, sizeof(pos_fl));
-      memcpy(pos_fr, default_pos_r, sizeof(pos_fr));
-      float rad = float(serialIntOutput) * (3.14 / 180);
-      float dz = 256 / 2 * float(sin(rad)); // 232 is the body length in x direction
-      pos_bl[2] = pos_bl[2] + dz;
-      pos_br[2] = pos_br[2] + dz;
-      pos_fl[2] = pos_fl[2] - dz;
-      pos_fr[2] = pos_fr[2] - dz;
-      calculate_ik_l(pos_bl, theta_bl);
-      calculate_ik_r(pos_br, theta_br);
-      calculate_ik_l(pos_fl, theta_fl);
-      calculate_ik_r(pos_fr, theta_fr);
-      set_join_array_leg(theta_fl, theta_fr, theta_bl, theta_br);
-    }
-    if (serialIntOutput == -1) {
-      return 0;
-    }
-  }
-}
-
-void serialSetBodyRotZ(int *theta_l, int *theta_r) {
-  float pos_bl[3];
-  float pos_br[3];
-  float pos_fl[3];
-  float pos_fr[3];
-  int theta_bl[3];
-  int theta_br[3];
-  int theta_fl[3];
-  int theta_fr[3];
-  int delay_ms = 50;
-  int serialIntOutput = 0;
-  while (true) {
-    if (Serial.available()) {
-      Serial.println("Pasrsing output");
-      serialIntOutput = Serial.parseInt();
-      Serial.println("Pasrsing output" + String(serialIntOutput));
-    }
-    if (serialIntOutput != 0) {
-      memcpy(pos_bl, default_pos_l, sizeof(pos_bl));
-      memcpy(pos_br, default_pos_r, sizeof(pos_br));
-      memcpy(pos_fl, default_pos_l, sizeof(pos_fl));
-      memcpy(pos_fr, default_pos_r, sizeof(pos_fr));
-      float rad = float(serialIntOutput) * (3.14 / 180);
-      float dy = 256 / 2 * float(sin(rad)); // 256 is the body length in x direction
-      pos_fl[1] = pos_fl[1] + dy;
-      pos_fr[1] = pos_fr[1] - dy;
-      pos_bl[1] = pos_bl[1] + dy;
-      pos_br[1] = pos_br[1] - dy;
-      calculate_ik_l(pos_fl, theta_fl);
-      calculate_ik_r(pos_fr, theta_fr);
-      calculate_ik_l(pos_bl, theta_bl);
-      calculate_ik_r(pos_br, theta_br);
-      Serial.println("pos_fl - 1 " + String(pos_fl[0]) + "--- 2 " + String(pos_fl[1]) + "--- 3 " + String(pos_fl[2]));
-      Serial.println("pos_fr - 1 " + String(pos_fr[0]) + "--- 2 " + String(pos_fr[1]) + "--- 3 " + String(pos_fr[2]));
-      Serial.println("pos_bl - 1 " + String(pos_bl[0]) + "--- 2 " + String(pos_bl[1]) + "--- 3 " + String(pos_bl[2]));
-      Serial.println("pos_br - 1 " + String(pos_br[0]) + "--- 2 " + String(pos_br[1]) + "--- 3 " + String(pos_br[2]));
-      Serial.println("theta_fl - 1 " + String(theta_fl[0]) + "--- 2 " + String(theta_fl[1]) + "--- 3 " + String(theta_fl[2]));
-      Serial.println("theta_fr - 1 " + String(theta_fr[0]) + "--- 2 " + String(theta_fr[1]) + "--- 3 " + String(theta_fr[2]));
-      Serial.println("theta_bl - 1 " + String(theta_bl[0]) + "--- 2 " + String(theta_bl[1]) + "--- 3 " + String(theta_bl[2]));
-      Serial.println("theta_br - 1 " + String(theta_br[0]) + "--- 2 " + String(theta_br[1]) + "--- 3 " + String(theta_br[2]));
-      set_join_array_leg(theta_fl, theta_fr, theta_bl, theta_br);
-    }
-    if (serialIntOutput == -1) {
-      return 0;
-    }
-  }
-}
-
 void setup() {
   Serial.begin(115200);
   Serial.setTimeout(10);
-  // put your setup code here, to run once:
-  pwm.begin();
-  pwm.setOscillatorFrequency(DEFAULT_FREQUENCY);
-  pwm.setPWMFreq(SERVOFREQ);
+  initServos();
   yield();
 
   int theta_l[3] = {0, 0, 0};

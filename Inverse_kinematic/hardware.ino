@@ -53,7 +53,7 @@ void set_joint_2(int theta) {
 }
 
 void set_joint_3(int theta) {
-  uint16_t off = map(theta, 90, -90, Servo0Min, Servo0Max);
+  uint16_t off = map(theta, -90, 90, Servo0Min, Servo0Max);
   pwm.writeMicroseconds(0, off);
 }
 
@@ -69,7 +69,7 @@ void set_joint_5(int theta) {
 }
 
 void set_joint_6(int theta) {
-  uint16_t off = map(theta, -90, 90, Servo3Min, Servo3Max);
+  uint16_t off = map(theta, 90, -90, Servo3Min, Servo3Max);
   pwm.writeMicroseconds(3, off);
 }
 
@@ -85,7 +85,7 @@ void set_joint_8(int theta) {
 }
 
 void set_joint_9(int theta) {
-  uint16_t off = map(theta, 90, -90, Servo6Min, Servo6Max);
+  uint16_t off = map(theta, -90, 90, Servo6Min, Servo6Max);
   pwm.writeMicroseconds(6, off);
 }
 
@@ -101,7 +101,7 @@ void set_joint_11(int theta) {
 }
 
 void set_joint_12(int theta) {
-  uint16_t off = map(theta, -90, 90, Servo9Min, Servo9Max);
+  uint16_t off = map(theta, 90, -90, Servo9Min, Servo9Max);
   pwm.writeMicroseconds(9, off);
 }
 

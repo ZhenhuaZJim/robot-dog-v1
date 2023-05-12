@@ -6,8 +6,8 @@ float LENGTH_2 = 70; // mm
 float LENGTH_3 = 90; // mm
 
 int n = -1;
-float default_pos_r[3] = {0, -75, -100};
-float default_pos_l[3] = {0, 75, -100};
+float default_pos_r[3] = {0, -90, -120};
+float default_pos_l[3] = {0, 90, -120};
 
 struct leg {
   float pos[3];
@@ -17,7 +17,7 @@ struct leg {
   float currentPhase = 0.0;
   float phaseOffset = 0.0;
   float switchingPhase = 0.6;
-  float periodTimeNominal = 1.0; // seconds
+  float periodTimeNominal = 0.6; // seconds
   float xRange[2];
   float yRange[2];
 };
@@ -206,7 +206,7 @@ void velocityControl() {
 
   float z_contact_offset = -120;
   float z_walk_height = 40;
-  float walkStride = 50;
+  float walkStride = 80;
 
   // Contact phase
   int serialIntOutput = 0;
